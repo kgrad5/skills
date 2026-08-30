@@ -21,14 +21,29 @@ Check and report; never assume.
 
 Arguments given: $ARGUMENTS
 
-Resolve the issue number in this order. Stop at the first that yields one.
+Resolve the **issue** number in this order. Stop at the first that yields one.
 
-1. The first argument, if it matches `^#?[0-9]+$`.
+1. **The first argument**, if it matches `^#?[0-9]+$` — but disambiguate it before trusting it. GitHub gives issues and pull requests **one shared number space**, and `gh issue view <n>` **succeeds on a PR number** (returning `state: MERGED`) rather than erroring. So a bare argument may be either.
+
+   ```bash
+   gh api repos/{owner}/{repo}/issues/<n> -q '{number, title, is_pr: (has("pull_request"))}'
+   ```
+
+   - `is_pr: false` → it is the issue. Use it as `<N>`.
+   - `is_pr: true` → the user passed the **PR** number. Use it as the PR, and take `<N>` from that PR's body: `gh pr view <n> --json body -q .body`, then the number in `[Cc]loses #([0-9]+)`. Say which you did, so the user sees their argument was read as a PR.
+   - HTTP 404 → neither an issue nor a PR with that number. Say so and ask; never fall through to the next rule, which would silently act on different work than the user named.
+
 2. `git branch --show-current` — the first number matching `(?:^|[/-])([0-9]+)(?:-|$)`. Covers `42-rate-limit`, `feat/42-rate-limit`, `kgrad/issue-42`.
 3. `gh pr view --json body -q .body` — the number in `[Cc]loses #([0-9]+)`.
 4. Ask the user. Never scan the issue list for a likely candidate, and never guess.
 
-Then find the PR: `gh pr list --state all --search "Closes #<N> in:body" --json number,state,headRefName`. If more than one matches, ask which.
+Then, unless rule 1 already produced it, find the PR:
+
+```bash
+gh pr list --state all --search "Closes #<N> in:body" --json number,state,headRefName
+```
+
+If more than one matches, ask which. If none matches, say so and stop — an issue with no PR has nothing to finish.
 
 ## Procedure
 
