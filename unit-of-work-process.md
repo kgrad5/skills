@@ -49,7 +49,7 @@ Keep interviewing until we've covered everything, then write a complete
 spec to specs/<slug>.md.
 ```
 
-A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, is accompanied by one file in `arch/` for every decision the interview settled and the options it closed off, and ends with an end-to-end verification step that proves the feature works. Edit SPEC.md until it meets that bar. Commit it.
+A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, is accompanied by one file in `arch/` for every decision the interview settled and the options it closed off, and ends with an end-to-end verification step that proves the feature works. Edit the spec until it meets that bar. Commit it, with its `arch/` files.
 
 ### 2. Spec → GitHub Issues
 
@@ -72,7 +72,7 @@ Show me the list before creating anything.
 
 **The rule that makes this work:** every issue must carry a check that can pass or fail. "curl returns 429 after the 10th request" — not "rate limiting works." If you can't write the check, the task isn't defined yet.
 
-Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer *re-derives* content that already exists somewhere else, so it drifts from intent and goes stale the moment implementation deviates. Spec (including its ADR appendix) + issues is the whole stack.
+Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer *re-derives* content that already exists somewhere else, so it drifts from intent and goes stale the moment implementation deviates. Spec + `arch/` + issues is the whole stack.
 
 The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives in `arch/`, one file per decision, in every repo — spec or no spec. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
 

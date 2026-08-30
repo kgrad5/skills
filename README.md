@@ -33,7 +33,7 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 
 There is no state file. The **GitHub issue is the store**: `/issue-to-task` posts the approved plan to it as a comment marked `<!-- unit-of-work:approved-plan -->`, and `/implement` and `/ship` read it back.
 
-The **decision log is the other store**, and the only one that outlives the issues: `arch/`, one file per decision, append-only. Specs live beside it in `specs/`, one file per feature, and every issue names the spec it came from on a `Spec:` line. `/issue-to-task` reads it back to you at restatement time on every unit of work, which is what keeps it from rotting — a log nothing reads is a log nobody can trust. That reader is the whole of it: nothing else in the loop consults the log except `/ship`, checking the diff against it.
+The **decision log is the other store**, and the only one that outlives the issues: `arch/`, one file per decision, append-only. Specs live beside it in `specs/`, one file per feature, and every issue names the spec it came from on a `Spec:` line. `/issue-to-task` reads it back to you at restatement time on every unit of work, which is what keeps it from rotting — a log nothing reads is a log nobody can trust. Every skill in the loop touches it: `/spec-to-issues` names the gaps, `/verify` reads the consequences of the entries an issue is bound by, `/ship` checks the diff against it, and `/finish` confirms the files reached the default branch.
 
 This matters because the harness plan file cannot be relied on — it is named after the *session*, sits in a flat global directory, is swept after 30 days, and is frequently never written. The issue survives `/clear`, `/compact`, a new session, a new machine, and a different person. It is also why `/finish` works days later in a session that knows nothing about the work.
 
@@ -57,7 +57,7 @@ Four things from those sections are **not** keystrokes, so they live in the skil
 
 The skills check these and tell you what's missing, but they can't fix them:
 
-1. `gh auth login` — five of the seven depend on it.
+1. `gh auth login` — six of the seven depend on it; only `/idea-to-spec` does not.
 2. A check that runs by command. Without one, `/verify` has nothing to do.
 3. `CLAUDE.md`, short — build/test/lint commands, style that differs from defaults, repo etiquette, gotchas. `/init` generates one; prune it hard.
 4. `/permissions` — allowlist your test runner, linter, `git commit`, `git push`, and `gh`.
