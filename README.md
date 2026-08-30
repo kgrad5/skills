@@ -13,10 +13,10 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
                                          [plan mode: explore, plan, approve]
                                          /implement
                                          /verify
-                                         /ship            → PR opened, review pending
+                                         /ship            → PR opened
                                          /clear
-                                            ⋮  [external code review]
-                                         /merge 42        → squash, delete branch, issue closed
+                                            ⋮  [read the diff, merge in the GitHub UI]
+                                         /finish 42       → branch deleted, issue closed
 ```
 
 | Skill | Does | Refuses to |
@@ -27,13 +27,13 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 | `/implement` | Branches, writes the failing tests, implements | Run without an approved plan; touch a file the plan doesn't list |
 | `/verify` | Runs the issue's check, shows command + full output | Summarize output; proceed on a failure |
 | `/ship` | Reviews vs. the plan, commits, opens the PR | PR from the default branch; use evidence older than the last fix; merge |
-| `/merge <n>` | Checks approval + CI, squash-merges, confirms the issue closed | Merge without `APPROVED` and green checks |
+| `/finish [n]` | Confirms the merge happened, closes the issue if `Closes #N` didn't fire, deletes the branch | Touch anything if the PR isn't `MERGED`, or the tree is dirty |
 
 ## Where the state lives
 
 There is no state file. The **GitHub issue is the store**: `/issue-to-task` posts the approved plan to it as a comment marked `<!-- unit-of-work:approved-plan -->`, and `/implement` and `/ship` read it back.
 
-This matters because the harness plan file cannot be relied on — it is named after the *session*, sits in a flat global directory, is swept after 30 days, and is frequently never written. The issue survives `/clear`, `/compact`, a new session, a new machine, and a different person. It is also why `/merge` works days later in a session that knows nothing about the work.
+This matters because the harness plan file cannot be relied on — it is named after the *session*, sits in a flat global directory, is swept after 30 days, and is frequently never written. The issue survives `/clear`, `/compact`, a new session, a new machine, and a different person. It is also why `/finish` works days later in a session that knows nothing about the work.
 
 ## What these skills deliberately do not do
 
@@ -49,7 +49,7 @@ Claude Code already does it:
 | Interrupt / rewind / compact | `Esc`, `Esc Esc` or `/rewind`, `/compact <instructions>` |
 | Close out | `/clear` |
 
-Four things from those sections are **not** keystrokes, so they live in the skills: the plan-approval checklist (`/issue-to-task`), plan-conformance review (`/ship` — `/code-review` never sees the issue or the plan), the two-strike rule (`/implement`), and the definition of done (`/merge`).
+Four things from those sections are **not** keystrokes, so they live in the skills: the plan-approval checklist (`/issue-to-task`), plan-conformance review (`/ship` — `/code-review` never sees the issue or the plan), the two-strike rule (`/implement`), and the definition of done (`/finish`).
 
 ## Setup, once per repo
 

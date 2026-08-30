@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commits the work, runs a correctness review, checks the diff against the approved plan and the issue, re-runs the verification check, and opens a pull request containing Closes #N and fresh evidence. Stops there so external code review can happen. This skill should be used when the user says "ship it", "open the PR", "raise a PR for this", or "commit and PR".
+description: Commits the work, runs a correctness review, checks the diff against the approved plan and the issue, re-runs the verification check, and opens a pull request containing Closes #N and fresh evidence. Stops there so the merge decision happens in the GitHub UI, where the diff is actually readable. This skill should be used when the user says "ship it", "open the PR", "raise a PR for this", or "commit and PR".
 argument-hint: [issue-number] [--draft]
 ---
 
@@ -37,6 +37,7 @@ The order below is deliberate. Do not reorder it.
 
 3. **Delegate correctness review** to the bundled `/code-review` skill, scoped to this branch's diff.
    - `/code-review` forks and runs in the background by default. **If it returns an agent name or handle rather than findings, stop.** Report that the review is still running and that `/ship` should be re-run once it lands. Do not proceed past this gate on a handle — a review you did not read is not a review.
+   - This pass and step 4 are the only scrutiny this change will get. There is no second human. Do not treat them as a formality to clear.
 
 4. **Check plan conformance** — the thing `/code-review` cannot do, because it never sees the issue or the plan.
    - Retrieve the approved plan: this conversation, then `gh issue view <N> --json comments` for the last comment containing `<!-- unit-of-work:approved-plan -->`, then the harness plan file.
@@ -61,11 +62,14 @@ The order below is deliberate. Do not reorder it.
    - `Closes #<N>`
    - A short summary of the change
    - The verification evidence from step 6 — command and full output, in a fenced block
+   - Any departure from the approved plan, called out rather than left in a commit message
    - A note if the plan-conformance check ran against the issue alone
 
-10. **Check the base.** `Closes #N` only auto-closes the issue on merge into the repository's default branch. If the resolved base is anything else, say so plainly — the issue will not auto-close and `/merge` will need to close it explicitly.
+   **If `--draft` was given, stop here.** A draft PR is a deliberate request to pause before landing.
 
-11. **Stop.** Report the PR URL and that external code review is pending. Do not merge, do not approve, do not wait.
+10. **Check the base.** `Closes #N` only auto-closes the issue on merge into the repository's default branch. If the resolved base is anything else, say so plainly — the issue will not auto-close, and `/finish` will have to close it explicitly.
+
+11. **Stop.** Report the PR URL and that the merge is now yours to make in the GitHub UI, where the diff is readable. Do not merge, do not wait.
 
 ## Hard rules
 
@@ -75,7 +79,7 @@ The order below is deliberate. Do not reorder it.
 - **Never claim plan conformance without the plan.** Say which artifact you reviewed against.
 - **The evidence in the PR body is generated after the last fix.** Stale evidence in a PR is a false claim about tested code.
 - **Confirm before `gh pr create`.** Outward-facing and hard to take back.
-- **Do not merge.** That is `/merge`, after review.
+- **Do not merge.** The merge happens in the GitHub UI, then `/finish` cleans up.
 
 ## Output
 
@@ -84,8 +88,8 @@ Report:
 - `/code-review`'s findings, and which you fixed versus ignored, with reasons.
 - The five plan-conformance verdicts, and what the plan came from.
 - The verification command and its full output from step 6.
-- The PR URL, and that review is pending.
+- The PR URL, and that the merge is yours to make.
 
 ## Next step
 
-External code review happens now. When it clears, run `/merge <N>` — from a fresh session is fine; the issue holds everything needed. Run `/clear` in the meantime.
+Merge the PR in the GitHub UI. Then run `/finish` — from a fresh session is fine; the branch and the issue hold everything needed.
