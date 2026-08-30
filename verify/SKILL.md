@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Runs the verification check defined in a GitHub issue and shows the exact command and its full output as evidence, adding a check to the issue first if it has none. This skill should be used when the user says "verify it", "run the check", "prove it works", or "verify issue 42".
+description: Runs the verification check defined in a GitHub issue and shows the exact command and its full output as evidence, adding a check to the issue first if it has none, and flagging any ADR consequence the evidence contradicts. This skill should be used when the user says "verify it", "run the check", "prove it works", or "verify issue 42".
 argument-hint: [issue-number]
 ---
 
@@ -14,6 +14,7 @@ Check and report; never assume.
 
 - `gh auth status` succeeds.
 - A test or check command is discoverable from `CLAUDE.md`, `package.json`, `Makefile`, `pyproject.toml`, or the issue itself. If none is found, **ask**. Never invent one.
+- If the issue carries a `Constrained by ADR-<n>` line, the ADR log is locatable. Resolve it as `/issue-to-task` step 1 does: the file carrying `## Appendix A — Architecture Decision Record`, found with `git ls-files '*SPEC.md'`, else `DECISIONS.md` at the repo root. If the issue names an entry no log holds, say so and stop. Never reconstruct the decision from the issue.
 
 ## Inputs
 
@@ -28,7 +29,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
 ## Procedure
 
-1. **Read the issue's Verification section**: `gh issue view <N>`.
+1. **Read the issue's Verification section**: `gh issue view <N>`. Read the **Consequences** of every ADR the issue names, before running the check — you cannot notice a contradiction with text you have not read.
 2. **If the issue has no verification check** — the normal case for any pre-existing backlog:
    - Propose one concrete check that can pass or fail, derived from the issue's goal and the code as it now stands.
    - Confirm it with `AskUserQuestion`: use the proposal, edit it, or take one the user supplies.
@@ -37,7 +38,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 3. **Run the check.** Show the exact command and its complete output, verbatim. Do not summarize, truncate, or paraphrase it. Reviewing real output is faster than re-running the check.
 4. **If the check fails:** print the failure verbatim, state plainly that the task is not done, and stop. Do not fix it here — hand back to `/implement`.
 5. **If the check cannot be run in this session** — it needs a browser, a staging environment, credentials you do not have — say exactly what blocks it, ask the user to run it and paste the output, and treat that output as the evidence. "I cannot run this" is not the same as "this is not done."
-6. **Post the evidence to the issue** as a comment, so the record is timestamped and survives this session.
+6. **Post the evidence to the issue** as a comment, so the record is timestamped and survives this session. If the output contradicts a consequence an ADR claims, post that in the same comment: the entry's number, the consequence line, and the output line that refutes it. Do not amend the log here — a contradiction is the next unit of work, and this skill's job is to make it undeniable, not to resolve it. A contradiction that lives only in this conversation is gone by the next session, which is the same reason the check itself gets written into the issue.
 
 ## Hard rules
 
@@ -52,6 +53,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 - The exact command run.
 - Its full output.
 - A one-line verdict: passed, failed, or blocked — and if blocked, exactly what blocks it.
+- Any ADR consequence the evidence contradicts, quoted against the output line that refutes it.
 - The URL of the evidence comment.
 
 ## Next step

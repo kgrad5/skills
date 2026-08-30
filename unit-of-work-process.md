@@ -12,6 +12,8 @@ Not every change deserves planning. Planning pays off when you're uncertain abou
 
 **Skip to a direct ask** (no plan mode, no issue ceremony) when you could describe the diff in one sentence: fixing a typo, adding a log line, renaming a variable. Just tell Claude what to do, verify, and commit.
 
+One exception. A one-line change can still be architecture-significant — pinning a runtime, adding a dependency, making a foreign key nullable, changing a default other code will come to rely on. **Size is not the test; reversibility is.** Such a change earns a decision-log entry even though it does not earn an issue: write the entry in the same commit at `**Status:** Accepted · <YYYY-MM-DD>`, with the issue field *omitted* rather than filled — everywhere in this process, fields you do not have are omitted, not filled. Without this, the decision gate at plan time is trivially evaded by not opening an issue.
+
 **Use the full process below** for everything else.
 
 ---
@@ -47,7 +49,7 @@ Keep interviewing until we've covered everything, then write a complete
 spec to SPEC.md.
 ```
 
-A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, and ends with an end-to-end verification step that proves the feature works. Edit SPEC.md until it meets that bar. Commit it.
+A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, carries an `## Appendix A — Architecture Decision Record` recording every decision the interview settled and the options it closed off, and ends with an end-to-end verification step that proves the feature works. Edit SPEC.md until it meets that bar. Commit it.
 
 ### 2. Spec → GitHub Issues
 
@@ -69,7 +71,9 @@ Show me the list before creating anything.
 
 **The rule that makes this work:** every issue must carry a check that can pass or fail. "curl returns 429 after the 10th request" — not "rate limiting works." If you can't write the check, the task isn't defined yet.
 
-Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer drifts from intent and goes stale the moment implementation deviates. Spec + issues is the whole stack. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
+Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer *re-derives* content that already exists somewhere else, so it drifts from intent and goes stale the moment implementation deviates. Spec (including its ADR appendix) + issues is the whole stack.
+
+The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives as Appendix A of the spec, or as `DECISIONS.md` at the repo root where there is no spec. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
 
 ---
 
@@ -120,10 +124,11 @@ dependencies), and risks. Stay inside the issue's scope.
 Press `Ctrl+G` to open the plan in your editor and edit it directly. Review against this checklist before approving:
 
 - [ ] Every consequential decision is explicit (no "handle appropriately")
-- [ ] The listed files match what you'd expect
+- [ ] The listed files match what you'd expect, plus the decision log when the plan records an entry
 - [ ] The plan ends with the issue's verification check
-- [ ] Nothing outside the issue's scope has crept in
+- [ ] Nothing outside the issue's scope has crept in — recording a decision this plan makes is inside scope
 - [ ] Test plan covers the edge cases named in the issue
+- [ ] The plan names the decision-log entry it adds, or says in as many words that it adds none. An entry is earned when either holds: the decision makes a sentence in the spec outside Appendix A wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
 
 Push back in plain English until it's right. Arguing with a paragraph is cheaper than reverting a diff.
 
@@ -174,14 +179,15 @@ Fix gaps that affect correctness or stated requirements. Ignore the rest — a r
 ```
 Commit with a descriptive message and open a PR with `gh pr create`.
 Include "Closes #<NUMBER>" in the PR description and summarize the
-verification evidence in the PR body.
+verification evidence in the PR body. State which decision-log entries
+this diff adds, or that it adds none.
 ```
 
 `Closes #N` auto-closes the issue on merge, which keeps the backlog truthful without manual bookkeeping.
 
 ### 10. Close out
 
-Merge per your team's review rules. Then run `/clear` (or close the terminal) before touching the next task. Done means: check passed with evidence, review gaps addressed, PR merged, issue closed.
+Merge per your team's review rules. Then run `/clear` (or close the terminal) before touching the next task. Done means: check passed with evidence, review gaps addressed, PR merged, issue closed, and every architecture decision the work settled is in the log on the default branch.
 
 ---
 

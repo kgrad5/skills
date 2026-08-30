@@ -1,6 +1,6 @@
 ---
 name: issue-to-task
-description: Loads a GitHub issue by number, restates its goal, out-of-scope list and verification check for confirmation, enters plan mode, and gates the resulting plan against five criteria before posting the approved plan back to the issue. This skill should be used when the user says "work on issue 42", "let's start issue 42", "load issue 42", or "plan issue 42".
+description: Loads a GitHub issue by number, restates its goal, out-of-scope list and verification check for confirmation, enters plan mode, drafts an ADR for any architecture the plan decides, and gates the resulting plan against six criteria before posting the approved plan back to the issue. This skill should be used when the user says "work on issue 42", "let's start issue 42", "load issue 42", or "plan issue 42".
 argument-hint: <issue-number>
 ---
 
@@ -30,26 +30,36 @@ Resolve the issue number in this order. Stop at the first that yields one.
 ## Procedure
 
 1. **Read the issue**: `gh issue view <N>`. Read `./SPEC.md` if it exists. If it does not, say "no SPEC.md; working from the issue alone" and continue — most repos have none.
+
+   **Resolve the ADR log once, here.** It is the file carrying `## Appendix A — Architecture Decision Record`: `SPEC.md` if the repo has one (`git ls-files '*SPEC.md'` when it is not at the root), otherwise `DECISIONS.md` at the repo root, created only when an entry is first needed. Read the log's entries — those the issue's `Constrained by ADR-<n>` line names, and, where it names none, the log's most recent entries anyway. A repo with no spec never went through `/spec-to-issues`, so no issue in it will ever carry that line, and a log nothing reads is a log that rots. Record the resolved path in the plan, on an `ADR log:` line in the Architecture decisions section. `/implement` and `/ship` read it from there rather than resolving again; `/verify` and `/finish` resolve it the same way when no plan is at hand. One rule, written here, is what keeps four skills from finding four different logs.
 2. **Check dependencies.** Scan the issue for `Depends on #<n>` or `Blocked by #<n>`. For each, run `gh issue view <n> --json state,title`. If any is still `OPEN`, warn the user with the blocking issue's number and title, and ask whether to proceed anyway. This is the only thing that makes dependency ordering mean anything.
 3. **Restate, in your own words** — not by quoting the issue back:
    - The goal
    - The out-of-scope list
    - The verification check
+   - **The ADR entries that bind this issue**, by number, and what each forbids. If none bind it, say so. This is the only step in the whole loop that reads the decision log back to a human, and it runs on every unit of work — a log nothing reads is a log that rots.
 4. **Confirm the restatement with `AskUserQuestion`.** This is a real gate: it yields the turn to the user. Offer "That's right", "That's wrong — the issue is ambiguous", and an option to correct a specific part.
    - If the restatement is wrong, **the issue is ambiguous**. Stop. Edit the issue with `gh issue edit <N>` so it says what it means, then re-read it. Do not patch the misunderstanding in conversation — the next session will hit the same ambiguity.
    - If the issue has no verification check, stop and add one now, the same way. An issue without a check is not ready to be worked.
 5. **Enter plan mode** if not already in it, using the `EnterPlanMode` tool (load it with `ToolSearch` if it is not already available). Do not assume the session is in plan mode.
 6. **Explore, then plan.** Read the files the issue names and the patterns they follow. Produce a plan covering: files to change, the approach, the test plan, side effects (migrations, env vars, new dependencies), and risks. Stay inside the issue's scope.
+
+   **Draft the ADR here, inside the plan — not afterwards.** A decision earns an entry when any of these is true: it makes a sentence in the spec outside Appendix A wrong or incomplete (name the sentence); it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format; or the issue carries an `Undocumented decision:` line, meaning the spec states a decision Appendix A never recorded and this issue is the first to implement it. In a repo with no spec, the first clause cannot fire and the second is the whole test. Neither, no entry — and when nothing qualifies, the section still gets written, holding the literal line `None — no architecture-significant decision in this plan.` Size is not the test; reversibility is.
+
+   For each one, write the full entry at `**Status:** Proposed`, and add the ADR log to the plan's file list. **Number from the log on the default branch, not your working tree** — one past the highest entry there, counting superseded ones. Two units of work planned before either merges will reach for the same number; `/ship` re-checks and renumbers if another entry landed first. Drafting it here rather than at step 10 is what makes approval mean something: the wording the user approves is the wording that lands on the default branch.
+
+   If the plan would **contradict** an ADR the issue is constrained by, stop and put it to the user. That is a supersede, not a detail — the new entry supersedes the old one, and the old one is never deleted.
 7. **Write the plan to the harness plan file** at the path given in the plan-mode message. This is the one write permitted in plan mode, and it makes the path available for the rest of the session.
-8. **Gate the plan on the five criteria** before presenting it. State each verdict explicitly:
+8. **Gate the plan on the six criteria** before presenting it. State each verdict explicitly:
    - Every consequential decision is explicit — no "handle appropriately"
-   - The listed files match what the issue would lead you to expect
+   - The listed files match what the issue would lead you to expect — plus the ADR log, when and only when this plan drafts an entry
    - The plan ends with the issue's verification check
-   - Nothing outside the issue's scope has crept in
+   - Nothing outside the issue's scope has crept in — recording a decision *this plan makes*, or one the spec states that Appendix A never recorded and this issue implements, is inside scope; recording any other is not
    - The test plan covers the edge cases the issue names
+   - **The plan states which ADR it adds, or states in as many words that it adds none.** Check the artifact, not your opinion: the Architecture decisions section exists and is non-empty. Silence fails this criterion — "I judged it insignificant" is exactly the verdict that leaves no trace
 
    Any criterion that fails, fix before presenting. Do not present a plan you have just described as failing.
-9. **Present for approval** via `ExitPlanMode`. Tell the user they can open the plan in their editor with `Ctrl+G`, and that arguing with a paragraph is cheaper than reverting a diff.
+9. **Present for approval** via `ExitPlanMode`. Tell the user they can open the plan in their editor with `Ctrl+G`, and that arguing with a paragraph is cheaper than reverting a diff. Where the plan drafts an entry, **say that the ADR text is part of what they are approving** — approval is the acceptance event, and this wording is what lands in the log.
 10. **The instant the plan is approved — before any code — post it to the issue:**
 
     ```bash
@@ -67,6 +77,16 @@ Resolve the issue number in this order. Stop at the first that yields one.
     ### Test plan
     ...
 
+    ### Architecture decisions
+    ADR log: <resolved path>
+
+    #### ADR-<n> — <noun phrase>
+    **Status:** Proposed · <YYYY-MM-DD> · issue #<N>
+    ... Context / Decision / Consequences / Alternatives rejected ...
+
+    ### Architecture decisions          # ← the other form this section takes
+    None — no architecture-significant decision in this plan.
+
     ### Verification
     <the issue's check, verbatim>
     EOF
@@ -80,10 +100,12 @@ Resolve the issue number in this order. Stop at the first that yields one.
 - **No verification check, no planning.** Add one to the issue first.
 - **The plan is posted to the issue before any code is written.** Every later skill reads it from there.
 - **Stay inside the issue's scope.** Anything you notice but that the issue does not cover gets mentioned to the user, not planned.
+- **The Architecture decisions section is never absent.** It holds entries or it holds the literal line `None — no architecture-significant decision in this plan.` An absent section is indistinguishable from a skipped judgement, and `/implement` has nothing to copy.
+- **Entry numbers are monotonic and never reused** — one past the highest in the log, counting superseded entries. **Fields you do not have are omitted, not filled.**
 
 ## Output
 
-Report the issue number and title, your restatement and its confirmation, any open dependencies, the five-criteria verdicts, and the URL of the posted plan comment.
+Report the issue number and title, your restatement and its confirmation, the ADRs that bind the issue, any open dependencies, the six-criteria verdicts, any ADR entry drafted and the log path it will land in, and the URL of the posted plan comment.
 
 ## Next step
 
