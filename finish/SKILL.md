@@ -80,7 +80,7 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
 7. **Confirm the remote branch is gone.** GitHub deletes it on merge only when the repository has automatic branch deletion enabled. If it survives, `git push origin --delete <branch>`.
 
 8. **State the definition of done**, item by item, with the evidence for each:
-   - The verification check passed — link the evidence comment on the issue, from `/verify` or `/ship`. If the issue carries no such comment, say so rather than implying it was checked.
+   - The verification check passed — link the evidence comment on the issue, which `/verify` posts. `/ship` puts its evidence in the PR body, not on the issue, so a unit of work that skipped `/verify` leaves the issue with none. If the issue carries no such comment, say so rather than implying it was checked.
    - The PR is merged, with the resulting commit on the default branch.
    - The issue is closed, and whether that happened automatically or had to be forced.
    - The branch is gone, locally and remotely.

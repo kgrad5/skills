@@ -23,15 +23,15 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 |---|---|---|
 | `/idea-to-spec` | Interviews you, writes `specs/<slug>.md` and an `arch/` file per decision | Overwrite an existing spec; renumber or delete an existing ADR; spec a one-line change |
 | `/spec-to-issues` | A spec → ordered issues, each naming its spec, with a pass/fail check and the ADRs that bind it | Create anything before you approve the list; file an issue with no check, or with no spec |
-| `/issue-to-task <n>` | Loads the issue, restates it *and the ADRs binding it*, gates the plan on six criteria, posts the plan — and any ADR it drafts — to the issue | Plan an issue whose restatement you say is wrong; leave the plan silent about whether it decides architecture |
-| `/implement` | Branches, writes the failing tests, implements, writes the plan's ADR into the log | Run without an approved plan; touch a file the plan doesn't list; make a decision the plan didn't draft |
-| `/verify` | Runs the issue's check, shows command + full output | Summarize output; proceed on a failure |
-| `/ship` | Reviews vs. the plan and the ADR log, commits, opens the PR | PR from the default branch; use evidence older than the last fix; open a PR whose diff decides architecture with nothing recorded; merge |
-| `/finish [n]` | Confirms the merge happened, closes the issue if `Closes #N` didn't fire, confirms the ADRs landed on the default branch, deletes the branch | Touch anything if the PR isn't `MERGED`, or the tree is dirty; write the ADR log itself |
+| `/issue-to-task <n>` | Loads the issue, restates it *and the ADRs binding it*, gates the plan on six criteria, posts the plan — and any ADR it drafts — to the issue | Plan an issue whose restatement you say is wrong, or one with no verification check, until the check is written into the issue; leave the plan silent about whether it decides architecture |
+| `/implement` | Branches, writes the failing tests, implements, writes the plan's ADR into `arch/` | Run without an approved plan; touch a file the plan doesn't list; make a decision the plan didn't draft |
+| `/verify` | Runs the issue's check, shows command + full output, posts the evidence to the issue | Summarize output; proceed on a failure — a failure hands back to `/implement` |
+| `/ship` | Commits first, then reviews vs. the plan and `arch/`, re-verifies, opens the PR | PR from the default branch; proceed past `/code-review` on an agent handle; open the PR without your explicit yes; use evidence older than the last fix; open a PR whose diff decides architecture with nothing recorded; merge |
+| `/finish [n]` | Confirms the merge happened, closes the issue if `Closes #N` didn't fire, confirms the `arch/` files landed on the default branch, deletes the branch | Touch anything if the PR isn't `MERGED`, or the tree is dirty; write the ADR log itself |
 
 ## Where the state lives
 
-There is no state file. The **GitHub issue is the store**: `/issue-to-task` posts the approved plan to it as a comment marked `<!-- unit-of-work:approved-plan -->`, and `/implement` and `/ship` read it back.
+There is no state file. The **GitHub issue is the store**: `/issue-to-task` posts the approved plan to it as a comment marked `<!-- unit-of-work:approved-plan -->`, and `/implement` and `/ship` read it back. The issue also holds `/verify`'s evidence comment, which `/finish` links for the definition of done.
 
 The **decision log is the other store**, and the only one that outlives the issues: `arch/`, one file per decision, append-only. Specs live beside it in `specs/`, one file per feature, and every issue names the spec it came from on a `Spec:` line. `/issue-to-task` reads it back to you at restatement time on every unit of work, which is what keeps it from rotting — a log nothing reads is a log nobody can trust. Every skill in the loop touches it: `/spec-to-issues` names the gaps, `/verify` reads the consequences of the entries an issue is bound by, `/ship` checks the diff against it, and `/finish` confirms the files reached the default branch.
 
@@ -55,7 +55,7 @@ Four things from those sections are **not** keystrokes, so they live in the skil
 
 ## Setup, once per repo
 
-The skills check these and tell you what's missing, but they can't fix them:
+The skills check the first two and tell you what's missing, but they can't fix them. Nothing checks the last two — they are on you:
 
 1. `gh auth login` — six of the seven depend on it; only `/idea-to-spec` does not.
 2. A check that runs by command. Without one, `/verify` has nothing to do.
@@ -64,7 +64,7 @@ The skills check these and tell you what's missing, but they can't fix them:
 
 ## Retrofitting an existing backlog
 
-Issues not created by `/spec-to-issues` have no `## Verification` section. `/verify` proposes a check, confirms it with you, and writes it into the issue before running it — fixing the issue rather than the conversation, so the next session verifies the same thing. A spec is optional everywhere except `/spec-to-issues`; an issue with no `Spec:` line is worked from the issue alone.
+Issues not created by `/spec-to-issues` have no `## Verification` section. `/issue-to-task` meets one first and refuses to plan until a check is written into the issue; `/verify` proposes one, confirms it with you, and writes it in when it meets such an issue directly — fixing the issue rather than the conversation, so the next session verifies the same thing. A spec is optional everywhere except `/spec-to-issues`; an issue with no `Spec:` line is worked from the issue alone.
 
 ## Another machine
 
@@ -78,6 +78,6 @@ git clone git@github.com:kgrad5/skills ~/.claude/skills
 
 No `allowed-tools`: it *restricts* the toolset rather than pre-approving it, and `/verify` and `/implement` must run project commands nobody can enumerate in advance. Permissions belong in `/permissions`.
 
-The six-criteria checklist appears in both `/issue-to-task` and `/ship` — plan-vs-issue before the work, diff-vs-plan after. Criteria 1–5 mirror each other — the same check, worded plan-side and diff-side; change one, change the other. Criterion 6 is deliberately asymmetric: `/issue-to-task` requires the entry to be **drafted in the plan** at `Status: Proposed`, `/ship` requires it to be **written into the log** at `Status: Accepted`.
+The six-criteria checklist appears in three places — `/issue-to-task` and `/ship` (plan-vs-issue before the work, diff-vs-plan after), and again as the hand checklist in `unit-of-work-process.md` step 4. Criteria 1–5 mirror each other — the same check, worded plan-side and diff-side; change one, change the other. Criterion 6 is deliberately asymmetric: `/issue-to-task` requires the entry to be **drafted in the plan** at `Status: Proposed`, `/ship` requires it to be **written into the log** at `Status: Accepted`.
 
 What must stay identical is the bar for what earns an entry. It now appears in three places — `/idea-to-spec`, `/issue-to-task`, `/ship` — plus `unit-of-work-process.md`. Change one, change all four.
