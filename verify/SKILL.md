@@ -14,7 +14,8 @@ Check and report; never assume.
 
 - `gh auth status` succeeds.
 - A test or check command is discoverable from `CLAUDE.md`, `package.json`, `Makefile`, `pyproject.toml`, or the issue itself. If none is found, **ask**. Never invent one.
-- If the issue carries a `Constrained by ADR-<n>` line, the ADR log is locatable. Resolve it as `/issue-to-task` step 1 does: the file carrying `## Appendix A — Architecture Decision Record`, found with `git ls-files '*SPEC.md'`, else `DECISIONS.md` at the repo root. If the issue names an entry no log holds, say so and stop. Never reconstruct the decision from the issue.
+- **The spec this issue descends from is named on its `Spec:` line** — `specs/<slug>.md`. Read that file, not whichever spec happens to be at hand: a check written against the wrong spec proves nothing about this one. A repo predating the `specs/` layout may carry a root `SPEC.md`; use it and say so. If the issue names a spec the repo does not hold, say so and stop.
+- If the issue carries a `Constrained by ADR-<n>` line, the matching file exists in `arch/`. If the issue names an entry `arch/` does not hold, say so and stop. Never reconstruct the decision from the issue.
 
 ## Inputs
 
@@ -29,7 +30,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
 ## Procedure
 
-1. **Read the issue's Verification section**: `gh issue view <N>`. Read the **Consequences** of every ADR the issue names, before running the check — you cannot notice a contradiction with text you have not read.
+1. **Read the issue's Verification section**: `gh issue view <N>`, and the spec its `Spec:` line names. Read the **Consequences** of every ADR the issue names, before running the check — you cannot notice a contradiction with text you have not read.
 2. **If the issue has no verification check** — the normal case for any pre-existing backlog:
    - Propose one concrete check that can pass or fail, derived from the issue's goal and the code as it now stands.
    - Confirm it with `AskUserQuestion`: use the proposal, edit it, or take one the user supplies.

@@ -46,17 +46,17 @@ tradeoffs. Don't ask obvious questions, dig into the hard parts I might
 not have considered.
 
 Keep interviewing until we've covered everything, then write a complete
-spec to SPEC.md.
+spec to specs/<slug>.md.
 ```
 
-A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, carries an `## Appendix A — Architecture Decision Record` recording every decision the interview settled and the options it closed off, and ends with an end-to-end verification step that proves the feature works. Edit SPEC.md until it meets that bar. Commit it.
+A good spec is self-contained: it names the files and interfaces involved, states what is **out of scope**, is accompanied by one file in `arch/` for every decision the interview settled and the options it closed off, and ends with an end-to-end verification step that proves the feature works. Edit SPEC.md until it meets that bar. Commit it.
 
 ### 2. Spec → GitHub Issues
 
-In the same session (or a fresh one with SPEC.md referenced):
+In the same session (or a fresh one with the spec referenced):
 
 ```
-Read @SPEC.md. Break it into an ordered list of tasks, each independently
+Read @specs/<slug>.md. Break it into an ordered list of tasks, each independently
 implementable and verifiable. For each task, create a GitHub issue with
 `gh issue create` containing:
 
@@ -64,6 +64,7 @@ implementable and verifiable. For each task, create a GitHub issue with
 - Files likely involved
 - Out of scope (explicit)
 - Verification: a concrete check that proves it's done
+- Spec: the specs/ file this task came from
 
 Label them all `feature-name` and number them in dependency order.
 Show me the list before creating anything.
@@ -73,7 +74,7 @@ Show me the list before creating anything.
 
 Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer *re-derives* content that already exists somewhere else, so it drifts from intent and goes stale the moment implementation deviates. Spec (including its ADR appendix) + issues is the whole stack.
 
-The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives as Appendix A of the spec, or as `DECISIONS.md` at the repo root where there is no spec. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
+The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives in `arch/`, one file per decision, in every repo — spec or no spec. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
 
 ---
 
@@ -94,7 +95,7 @@ Or, in an existing terminal: run `/clear`, then press `Shift+Tab` until the stat
 ### 2. Load the task
 
 ```
-Run `gh issue view <NUMBER>` and read @SPEC.md. Restate the goal,
+Run `gh issue view <NUMBER>` and read the spec its Spec: line names. Restate the goal,
 the out-of-scope list, and the verification check in your own words.
 ```
 
@@ -128,7 +129,7 @@ Press `Ctrl+G` to open the plan in your editor and edit it directly. Review agai
 - [ ] The plan ends with the issue's verification check
 - [ ] Nothing outside the issue's scope has crept in — recording a decision this plan makes is inside scope
 - [ ] Test plan covers the edge cases named in the issue
-- [ ] The plan names the decision-log entry it adds, or says in as many words that it adds none. An entry is earned when either holds: the decision makes a sentence in the spec outside Appendix A wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
+- [ ] The plan names the decision-log entry it adds, or says in as many words that it adds none. An entry is earned when either holds: the decision makes a sentence in the spec wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
 
 Push back in plain English until it's right. Arguing with a paragraph is cheaper than reverting a diff.
 

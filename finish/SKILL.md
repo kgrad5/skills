@@ -1,6 +1,6 @@
 ---
 name: finish
-description: Closes out a unit of work after the pull request was merged by hand in the GitHub UI — verifies the merge actually happened, confirms the issue closed and closes it explicitly if it did not, confirms the ADR entries landed on the default branch, deletes the branch locally and remotely, and states the definition of done with evidence. This skill should be used when the user says "finish", "finish up", "I merged it", "clean up the branch", "close it out", or "wrap up issue 42".
+description: Closes out a unit of work after the pull request was merged by hand in the GitHub UI — verifies the merge actually happened, confirms the issue closed and closes it explicitly if it did not, confirms the arch/ files landed on the default branch, deletes the branch locally and remotely, and states the definition of done with evidence. This skill should be used when the user says "finish", "finish up", "I merged it", "clean up the branch", "close it out", or "wrap up issue 42".
 argument-hint: [issue-number]
 ---
 
@@ -70,12 +70,10 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
 5. **Confirm the architecture decisions landed — only if the PR recorded any.** If the PR body carries no `Decisions recorded:` line, there is nothing to confirm: skip to step 6 without comment. Otherwise: you are standing on the updated default branch, which is the only place this check means anything — the branch you came from always has the entry. Read the log from the branch, not the checkout, because a squash merge leaves none of the PR's commits behind:
 
    ```bash
-   git show <default-branch>:SPEC.md | grep -nE '^#{3,4} ADR-'
+   git ls-tree --name-only <default-branch> arch/
    ```
 
-   Use `DECISIONS.md` where the repo has no spec, and skip this step entirely — saying so — where the repo has neither. The pattern matches both heading levels on purpose: the log's own level is `###`, and a `####` entry means `/implement` copied it out of the plan comment without promoting it, which is worth reporting rather than silently missing.
-
-   Name the entries belonging to this unit of work. If the PR body said `Decisions recorded: ADR-<n>` and the default branch does not hold it, say so plainly — that is a record that silently failed to land.
+   Name the files belonging to this unit of work. If the PR body said `Decisions recorded: ADR-<n>` and the default branch does not hold it, say so plainly — that is a record that silently failed to land.
 
 6. **Delete the local branch.** Try `git branch -d <branch>` first. If it refuses because the PR was **squash-merged** — the branch's commits are not ancestors of the base, so git cannot prove it was merged — use `git branch -D <branch>`. Only ever reach for `-D` having confirmed `MERGED` in step 1.
 
@@ -86,7 +84,7 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
    - The PR is merged, with the resulting commit on the default branch.
    - The issue is closed, and whether that happened automatically or had to be forced.
    - The branch is gone, locally and remotely.
-   - The architecture decisions this work settled are in the log on the default branch, by number. Omit this item when the work settled none.
+   - The architecture decisions this work settled are in `arch/` on the default branch, by path. Omit this item when the work settled none.
 
    If any item cannot be confirmed, say which and why.
 
@@ -97,7 +95,7 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
 - **`-D` only after confirming `MERGED`.** Force-deleting on an assumption is how work disappears.
 - **Verify the issue closed.** Never report it closed on the strength of `Closes #N` being present in the PR body.
 - **Report the definition of done honestly.** If the issue has no verification evidence, say that — do not let a merged PR stand in for a check that passed.
-- **Never write the ADR log here.** Step 4 leaves you on the default branch with a clean tree, which makes recording a missing decision look free. It is an unreviewed commit straight to the default branch, outside any unit of work. Report the gap; fixing it is the next `/issue-to-task`, not this skill's job.
+- **Never write to `arch/` here.** Step 4 leaves you on the default branch with a clean tree, which makes recording a missing decision look free. It is an unreviewed commit straight to the default branch, outside any unit of work. Report the gap; fixing it is the next `/issue-to-task`, not this skill's job.
 
 ## Output
 

@@ -21,8 +21,8 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 
 | Skill | Does | Refuses to |
 |---|---|---|
-| `/idea-to-spec` | Interviews you, writes `SPEC.md` with its ADR appendix | Overwrite an existing spec; drop or renumber an existing ADR; spec a one-line change |
-| `/spec-to-issues` | `SPEC.md` → ordered issues, each with a pass/fail check and the ADRs that bind it | Create anything before you approve the list; file an issue with no check |
+| `/idea-to-spec` | Interviews you, writes `specs/<slug>.md` and an `arch/` file per decision | Overwrite an existing spec; renumber or delete an existing ADR; spec a one-line change |
+| `/spec-to-issues` | A spec → ordered issues, each naming its spec, with a pass/fail check and the ADRs that bind it | Create anything before you approve the list; file an issue with no check, or with no spec |
 | `/issue-to-task <n>` | Loads the issue, restates it *and the ADRs binding it*, gates the plan on six criteria, posts the plan — and any ADR it drafts — to the issue | Plan an issue whose restatement you say is wrong; leave the plan silent about whether it decides architecture |
 | `/implement` | Branches, writes the failing tests, implements, writes the plan's ADR into the log | Run without an approved plan; touch a file the plan doesn't list; make a decision the plan didn't draft |
 | `/verify` | Runs the issue's check, shows command + full output | Summarize output; proceed on a failure |
@@ -33,7 +33,7 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 
 There is no state file. The **GitHub issue is the store**: `/issue-to-task` posts the approved plan to it as a comment marked `<!-- unit-of-work:approved-plan -->`, and `/implement` and `/ship` read it back.
 
-The **decision log is the other store**, and the only one that outlives the issues: `## Appendix A — Architecture Decision Record` in `SPEC.md`, or `DECISIONS.md` where there is no spec. It is append-only. `/issue-to-task` reads it back to you at restatement time on every unit of work, which is what keeps it from rotting — a log nothing reads is a log nobody can trust. That reader is the whole of it: nothing else in the loop consults the log except `/ship`, checking the diff against it.
+The **decision log is the other store**, and the only one that outlives the issues: `arch/`, one file per decision, append-only. Specs live beside it in `specs/`, one file per feature, and every issue names the spec it came from on a `Spec:` line. `/issue-to-task` reads it back to you at restatement time on every unit of work, which is what keeps it from rotting — a log nothing reads is a log nobody can trust. That reader is the whole of it: nothing else in the loop consults the log except `/ship`, checking the diff against it.
 
 This matters because the harness plan file cannot be relied on — it is named after the *session*, sits in a flat global directory, is swept after 30 days, and is frequently never written. The issue survives `/clear`, `/compact`, a new session, a new machine, and a different person. It is also why `/finish` works days later in a session that knows nothing about the work.
 
@@ -64,7 +64,7 @@ The skills check these and tell you what's missing, but they can't fix them:
 
 ## Retrofitting an existing backlog
 
-Issues not created by `/spec-to-issues` have no `## Verification` section. `/verify` proposes a check, confirms it with you, and writes it into the issue before running it — fixing the issue rather than the conversation, so the next session verifies the same thing. `SPEC.md` is optional everywhere except `/spec-to-issues`.
+Issues not created by `/spec-to-issues` have no `## Verification` section. `/verify` proposes a check, confirms it with you, and writes it into the issue before running it — fixing the issue rather than the conversation, so the next session verifies the same thing. A spec is optional everywhere except `/spec-to-issues`; an issue with no `Spec:` line is worked from the issue alone.
 
 ## Another machine
 

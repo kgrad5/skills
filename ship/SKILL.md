@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Commits the work, runs a correctness review, checks the diff against the approved plan, the issue and the ADR log, re-runs the verification check, and opens a pull request containing Closes #N and fresh evidence. Stops there so the merge decision happens in the GitHub UI, where the diff is actually readable. This skill should be used when the user says "ship it", "open the PR", "raise a PR for this", or "commit and PR".
+description: Commits the work, runs a correctness review, checks the diff against the approved plan, the issue and arch/, re-runs the verification check, and opens a pull request containing Closes #N and fresh evidence. Stops there so the merge decision happens in the GitHub UI, where the diff is actually readable. This skill should be used when the user says "ship it", "open the PR", "raise a PR for this", or "commit and PR".
 argument-hint: [issue-number] [--draft]
 ---
 
@@ -42,19 +42,19 @@ The order below is deliberate. Do not reorder it.
 4. **Check plan conformance** — the thing `/code-review` cannot do, because it never sees the issue or the plan.
    - Retrieve the approved plan: this conversation, then `gh issue view <N> --json comments` for the last comment containing `<!-- unit-of-work:approved-plan -->`, then the harness plan file.
    - If no plan is retrievable, review the diff against **the issue alone**, and say so explicitly — in your report and in the PR body. Never claim conformance you did not check.
-   - **Take the ADR log path from the plan comment's `ADR log:` line.** Never resolve it again here. With no plan, resolve it exactly as `/issue-to-task` step 1 does — the file carrying `## Appendix A — Architecture Decision Record`, `SPEC.md` (`git ls-files '*SPEC.md'`) or `DECISIONS.md` at the repo root — and say which file you used.
+   - **The decision log is `arch/` at the repo root**, one file per decision. The plan's file list names the exact paths it drafted. Read the issue's `Spec:` line for the spec this work descends from, and judge scope against that spec — not against a spec you guessed at.
    - Apply **the same six criteria as `/issue-to-task`, to the diff instead of the plan**:
      - Every consequential decision in the plan is actually implemented — nothing "handled appropriately"
-     - The files changed match the plan's file list — with one exception: the ADR log may be written even where the plan omitted it, because criterion 6 firing *means the plan was incomplete*. Say so explicitly, in the report and in the PR body
+     - The files changed match the plan's file list — with one exception: an `arch/` file may be added even where the plan omitted it, because criterion 6 firing *means the plan was incomplete*. Say so explicitly, in the report and in the PR body
      - The issue's verification check is satisfied by the change
-     - Nothing outside the issue's scope changed, except an entry recording a decision this diff makes
+     - Nothing outside the issue's scope changed, except an `arch/` file recording a decision this diff makes
      - The edge cases the issue names have tests
-     - **The diff adds the ADR the plan named, and no decision in the diff is missing from the log.** Check the artifact first: the plan's Architecture decisions section either names entries — each must appear in the diff — or holds the literal `None`, which the diff must bear out. The bar for a decision the plan never named is the same one `/issue-to-task` used: it makes a sentence in the spec outside Appendix A wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
+     - **The diff adds the `arch/` file the plan named, and no decision in the diff is missing from `arch/`.** Check the artifact first: the plan's Architecture decisions section either names entries — each must appear in the diff — or holds the literal `None`, which the diff must bear out. The bar for a decision the plan never named is the same one `/issue-to-task` used: it makes a sentence in the issue's spec wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
    - Use a subagent for this so it is not biased by the reasoning that produced the change.
 
 5. **Fix the gaps that matter** — those affecting correctness or a stated requirement. Ignore style preferences. A reviewer told to find gaps will always find some, and chasing every finding produces over-engineering. Commit the fixes separately.
 
-   **A missing ADR is always a gap that matters, never a style preference.** Write the entry into the log resolved at step 4, in the format `/idea-to-spec` defines — `### ADR-<n>`, then Status, Context, Decision, Consequences, Alternatives rejected — numbered one past the highest entry there, counting superseded ones. **Re-check the number against the default branch**: a plan drafted days ago may have claimed a number another branch has since landed. Renumber rather than collide, and commit it with the other fixes. But an entry written here was never in an approved plan, so it cannot claim the approval that makes an entry `Accepted`: show its Context, Decision, Consequences and Alternatives to the user and get an explicit yes first — the same yes step 7 requires for the pull request itself.
+   **A missing ADR is always a gap that matters, never a style preference.** Add `arch/<NNNN>-<kebab-slug>.md` in the format `/idea-to-spec` defines — `# ADR-<n>`, then Status, Context, Decision, Consequences, Alternatives rejected — numbered one past the highest file in `arch/`, counting superseded ones. **Re-check the number against the default branch**: a plan drafted days ago may have claimed a number another branch has since landed. Renumber and rename rather than collide, then commit it with the other fixes. But an entry written here was never in an approved plan, so it cannot claim the approval that makes an entry `Accepted`: show its Context, Decision, Consequences and Alternatives to the user and get an explicit yes first — the same yes step 7 requires for the pull request itself.
 
 6. **Re-run the verification check now**, after the fixes. The evidence `/verify` produced earlier predates step 5 and is stale. Capture this run's exact command and full output — that is what goes in the PR body.
 
@@ -82,7 +82,7 @@ The order below is deliberate. Do not reorder it.
 - **Push before `gh pr create`.** It cannot resolve a head repository from an unpushed branch and will abort.
 - **Never proceed past `/code-review` on an agent handle.** Findings or nothing.
 - **Never claim plan conformance without the plan.** Say which artifact you reviewed against.
-- **No ADR, no PR.** A diff that decides architecture and records nothing does not become a pull request. Write the entry, get the user's yes, commit it — then open the PR.
+- **No ADR, no PR.** A diff that decides architecture and adds no `arch/` file does not become a pull request. Write the entry, get the user's yes, commit it — then open the PR.
 - **Never stamp `Accepted` on text nobody approved.** An entry this skill authors gets the user's explicit yes before it is committed.
 - **The evidence in the PR body is generated after the last fix.** Stale evidence in a PR is a false claim about tested code.
 - **Confirm before `gh pr create`.** Outward-facing and hard to take back.
@@ -94,7 +94,7 @@ Report:
 - The branch, base branch, and commits made.
 - `/code-review`'s findings, and which you fixed versus ignored, with reasons.
 - The six plan-conformance verdicts, and what the plan came from.
-- The ADR entries this branch adds, by number, and whether any was authored here rather than in the plan. One line, omitted when there are none.
+- The `arch/` files this branch adds, by path, and whether any was authored here rather than in the plan. One line, omitted when there are none.
 - The verification command and its full output from step 6.
 - The PR URL, and that the merge is yours to make.
 

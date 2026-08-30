@@ -1,6 +1,6 @@
 ---
 name: implement
-description: Creates the issue's branch and implements a previously approved plan under a strict scope guard, writes any ADR the plan drafted into the decision log, refusing to touch any file the plan does not list and refusing to run at all if no approved plan can be found. This skill should be used when the user says "implement the plan", "implement issue 42", "build it", or "start implementing" after a plan has been approved.
+description: Creates the issue's branch and implements a previously approved plan under a strict scope guard, writes any ADR the plan drafted into arch/, refusing to touch any file the plan does not list and refusing to run at all if no approved plan can be found. This skill should be used when the user says "implement the plan", "implement issue 42", "build it", or "start implementing" after a plan has been approved.
 argument-hint: [issue-number]
 ---
 
@@ -37,19 +37,19 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
    If the plan came from conversation and no marked comment exists on the issue yet, post one now (see `/issue-to-task` step 10) before starting work.
 
-2. **Read the issue** for its out-of-scope list and verification check: `gh issue view <N>`. Read `./SPEC.md` if present; if absent, say "no SPEC.md; working from the issue alone" and continue.
+2. **Read the issue** for its out-of-scope list and verification check: `gh issue view <N>`, and the spec its `Spec:` line names. A repo predating this layout may carry a root `SPEC.md`; use it and say so. If it names none, say "no spec named; working from the issue alone" and continue.
 
 3. **Create the branch**: `gh issue develop <N> --checkout`. This names the branch for the issue and registers it as GitHub's linked branch, so every later skill can infer the number from the branch. If that fails, fall back to `git switch -c <N>-<short-slug>`. If already on the issue's branch, stay.
 
-4. **Restate the plan's file list** and state plainly that anything not on it is off-limits for this task. The ADR log is on that list whenever the plan's Architecture decisions section holds an entry; take its path from the plan rather than resolving it again.
+4. **Restate the plan's file list** and state plainly that anything not on it is off-limits for this task. An `arch/` file is on that list whenever the plan's Architecture decisions section holds an entry; take the exact path from the plan.
 
 5. **Write the tests the plan named, first.** Run them. Watch them fail for the right reason. A test that passes before the implementation exists is testing nothing.
 
 6. **Implement.** Then run the full suite.
 
-7. **Write the plan's drafted ADR into the log.** Copy each entry from the approved-plan comment, changing exactly three things: promote the heading from `#### ADR-<n>` to `### ADR-<n>` (the comment nests entries under a section, the log does not — and `/finish` greps for the log's level), change `**Status:** Proposed` to `**Status:** Accepted`, and set the date to the day the plan was approved. Everything below the heading is copied unchanged.
+7. **Write the plan's drafted ADR into `arch/`.** Create the file at the path the plan named, copying the entry body verbatim and changing exactly two things: `**Status:** Proposed` becomes `**Status:** Accepted`, and the date becomes the day the plan was approved.
 
-   **Append. Never renumber or delete an existing entry, and never rewrite one.** Setting a superseded entry's Status line to `Superseded by ADR-<m>` is the single permitted edit to text already in the log, and only when the approved plan drafted that supersede — the entry's own words stay exactly as they were, because the reversal is the most useful thing in the log and a rewritten entry destroys it.
+   **Only ever add files here. Never rename, renumber or delete one, and never rewrite one.** Setting a superseded entry's Status line to `Superseded by ADR-<m>` is the single permitted edit to a file already in `arch/`, and only when the approved plan drafted that supersede — its own words stay exactly as they were, because the reversal is the most useful thing in the record and a rewritten entry destroys it.
 
    If the plan's Architecture decisions section says `None`, this step is a no-op. If the plan has **no such section at all** — one approved before this step existed — do not infer its contents: treat any decision the work makes as unplanned and stop, per step 9. An entry left in the issue comment is lost: the comment is a draft, the file is the record.
 
@@ -57,7 +57,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
 9. **If the work needs a file outside the plan's list — stop.** Name the file, say why it is needed, and ask. Never expand scope silently. The user may approve it, redirect you, or decide the plan was wrong; all three are better than finding out in the diff.
 
-   **A decision is not a file.** If the work settles something architecture-significant that the plan did not draft — even when the ADR log is already on the file list — stop and ask in exactly the same way. The scope guard counts files, so a second, unplanned decision walks straight through it and lands in the log wearing the authority of a plan that never considered it.
+   **A decision is not a file.** If the work settles something architecture-significant that the plan did not draft — even when an `arch/` file is already on the plan's list — stop and ask in exactly the same way. The scope guard counts files, so a second, unplanned decision walks straight through it and lands in the log wearing the authority of a plan that never considered it.
 
 ## Hard rules
 
@@ -74,7 +74,7 @@ Report:
 - The issue number and the branch created or reused.
 - Where the plan came from (conversation, issue comment, or plan file).
 - The plan's file list, and the files actually changed. Call out any divergence explicitly.
-- The ADR entries written, by number. Say nothing here when the plan drafted none — but a plan that drafted one and a step 7 that wrote nothing must never both pass in silence.
+- The `arch/` files written, by path. Say nothing here when the plan drafted none — but a plan that drafted one and a step 7 that wrote nothing must never both pass in silence.
 - The test command run and whether the suite passes.
 - Anything you stopped and asked about.
 
