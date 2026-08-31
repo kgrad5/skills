@@ -97,6 +97,25 @@ directory sorts in decision order:
 - <Option> — <why it lost>
 ```
 
+### Citing a spec section
+
+**Every reference to a spec section names the spec file — `specs/<slug>.md §4.4`, never a bare
+`§4.4`.** This holds in ADR bodies, issue bodies, plans, commit messages, PR bodies and code
+comments: anywhere outside the spec itself. Naming it once per line is enough, so a later `§` on
+the same line reads against it.
+
+A bare `§4.4` is unambiguous only while a repo holds exactly one spec, and the `specs/` layout
+exists precisely because it will hold several. A reader two specs later cannot recover which
+document was meant, and `arch/` — the place these references cluster — is the artifact that is
+never rewritten to fix them.
+
+Inside `specs/<slug>.md` itself a bare `§` is correct: a document citing its own sections.
+
+**Enforce this rather than remember it.** A test that fails on a `§` appearing on a line with no
+`specs/<slug>.md` costs a dozen lines, and grandfathering the entries that predate it by name
+keeps `arch/` append-only while stopping new ones. Written down and not enforced, this rule
+survives about one file.
+
 ### What earns an entry
 
 A decision earns an ADR when either of these is true:
