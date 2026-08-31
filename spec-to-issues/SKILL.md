@@ -26,7 +26,7 @@ Arguments given: $ARGUMENTS
 
 ## Procedure
 
-1. **Read the spec in full**, including its Out of scope and Verification sections, and **list `arch/`** and read the entries it holds. The enumerated list is what actually gets read; a source not named here is a source skipped.
+1. **Read the spec in full**, including its Out of scope and Verification sections, and **list `arch/`** and read the entries it holds. Skip `arch/archive/`: those decisions were retired by later ones, and an issue constrained by a decision that no longer binds is worse than an issue with no constraint named. The enumerated list is what actually gets read; a source not named here is a source skipped.
 2. **Decompose it** into tasks. Each one must be:
    - **Independently implementable** — a single Claude session can plan and finish it
    - **Independently verifiable** — it has its own check, not "covered by the feature's end-to-end test"

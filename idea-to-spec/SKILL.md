@@ -42,7 +42,7 @@ Arguments given: $ARGUMENTS
 
    Skip anything whose answer is obvious or already given. Spend the questions on the parts the user probably has not considered. Where you have a recommendation, make it the first option and mark it recommended.
 5. **Keep going until it is covered.** Do not stop at one round. Stop when a new round would only produce questions whose answers do not change the implementation. State that you have reached that point before writing.
-6. **Write the spec** to the output path, and **one file per architecture decision into `arch/`**. Every decision the interview settled that meets the bar below gets a file. On a new repo they are numbered from 1; otherwise they continue from one past the highest number already in `arch/`, per step 2. The spec itself carries only a pointer to the directory — `ls arch/` is the index, so nothing has to be kept in sync twice.
+6. **Write the spec** to the output path, and **one file per architecture decision into `arch/`**. Every decision the interview settled that meets the bar below gets a file. On a new repo they are numbered from 1; otherwise they continue from one past the highest number in `arch/` and `arch/archive/` together, per step 2 — a retired entry keeps its number, so the archive counts even though nothing else reads it. The spec itself carries only a pointer to the directory — `ls arch/` is the index of live decisions, so nothing has to be kept in sync twice.
 7. **Check it against the quality bar below.** Report which criteria it meets. If one fails, fix it before handing back.
 8. **Tell the user to review and commit it.** The spec is the input to every issue that follows; an uncommitted spec is one nobody else can see.
 
@@ -71,7 +71,10 @@ Arguments given: $ARGUMENTS
 
 ## Decisions
 
-One file per decision in [`arch/`](arch/). `ls arch/` is the index.
+One file per decision in [`arch/`](arch/). `ls arch/` is the index of live decisions. An entry a
+later decision retired moves to [`arch/archive/`](arch/archive/) — it keeps its number and its
+wording forever, and nothing reads it except to resolve that number or to look up a decision an
+old issue still cites.
 ```
 
 Each decision is its own file, `arch/<NNNN>-<kebab-slug>.md`, zero-padded to four digits so the
@@ -115,6 +118,13 @@ Inside `specs/<slug>.md` itself a bare `§` is correct: a document citing its ow
 `specs/<slug>.md` costs a dozen lines, and grandfathering the entries that predate it by name
 keeps `arch/` append-only while stopping new ones. Written down and not enforced, this rule
 survives about one file.
+
+**Key that exemption list by basename, not by full path.** A grandfathered entry is exactly the
+kind that gets superseded and swept into `arch/archive/`, and a list keyed on `arch/0026-….md`
+breaks twice over when that happens: the path no longer exists, and the moved file loses the
+exemption that was the only thing keeping its bare `§` legal. `/implement`'s sweep greps for the
+filename and refuses to move a file anything references by path, so a path-keyed list does not
+corrupt anything — it just stops the entry ever being archived, quietly and forever.
 
 ### What earns an entry
 

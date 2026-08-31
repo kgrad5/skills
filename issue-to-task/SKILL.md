@@ -48,7 +48,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
    Cite spec sections in the entry as `specs/<slug>.md §4.4`, never a bare `§4.4` — `/idea-to-spec` states why. The wording approved here is the wording that lands in `arch/`, and `arch/` is never rewritten to fix a citation later.
 
-   For each one, write the full entry at `**Status:** Proposed`, and add its `arch/<NNNN>-<slug>.md` path to the plan's file list. **Number from `arch/` on the default branch, not your working tree** — one past the highest file there, counting superseded ones. Two units of work planned before either merges will reach for the same number; `/ship` re-checks and renames if another file landed first. Drafting it here rather than at step 10 is what makes approval mean something: the wording the user approves is the wording that lands on the default branch.
+   For each one, write the full entry at `**Status:** Proposed`, and add its `arch/<NNNN>-<slug>.md` path to the plan's file list. **Number from `arch/` on the default branch, not your working tree** — one past the highest file in `arch/` **and `arch/archive/` together**, which `git ls-tree -r --name-only <default-branch> arch/` gives you in one command. Counting the archive is not optional: a retired entry keeps its number, and a count that skips the archive hands the next unit of work a number already in use. Two units of work planned before either merges will reach for the same number; `/ship` re-checks and renames if another file landed first. Drafting it here rather than at step 10 is what makes approval mean something: the wording the user approves is the wording that lands on the default branch.
 
    If the plan would **contradict** an ADR the issue is constrained by, stop and put it to the user. That is a supersede, not a detail — the new entry supersedes the old one, and the old one is never deleted.
 7. **Write the plan to the harness plan file** at the path given in the plan-mode message. This is the one write permitted in plan mode, and it makes the path available for the rest of the session.
@@ -103,7 +103,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 - **The plan is posted to the issue before any code is written.** Every later skill reads it from there.
 - **Stay inside the issue's scope.** Anything you notice but that the issue does not cover gets mentioned to the user, not planned.
 - **The Architecture decisions section is never absent.** It holds entries or it holds the literal line `None — no architecture-significant decision in this plan.` An absent section is indistinguishable from a skipped judgement, and `/implement` has nothing to copy.
-- **Entry numbers are monotonic and never reused** — one past the highest file in `arch/`, counting superseded ones. The filename is `<NNNN>-<kebab-slug>.md`, zero-padded to four digits so the directory sorts in decision order. **Fields you do not have are omitted, not filled.**
+- **Entry numbers are monotonic and never reused** — one past the highest file across `arch/` and `arch/archive/` together. A superseded entry moves to the archive but keeps its number forever, so the archive is part of the count even though nothing else reads it. The filename is `<NNNN>-<kebab-slug>.md`, zero-padded to four digits so the directory sorts in decision order. **Fields you do not have are omitted, not filled.**
 
 ## Output
 

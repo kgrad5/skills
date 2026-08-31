@@ -75,6 +75,14 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
 
    Name the files belonging to this unit of work. If the PR body said `Decisions recorded: ADR-<n>` and the default branch does not hold it, say so plainly — that is a record that silently failed to land.
 
+   **Then flag any retired entry still sitting in the top level, whether or not this PR recorded a decision.** `/implement` archives a superseded entry into `arch/archive/` as the second half of the supersede, and sweeps any it finds left behind. This is the backstop for what that sweep missed or declined:
+
+   ```bash
+   git grep -l '^\*\*Status:\*\* Superseded' <default-branch> -- arch/ ':!arch/archive/'
+   ```
+
+   Name every file it returns. **Do not move them** — see the hard rule below. Each one is a small unit of work for `/issue-to-task`, or a sign that something references the entry by path and `/implement` was right to leave it alone. Say which you think it is, and say nothing at all when the command returns nothing.
+
 6. **Delete the local branch.** Try `git branch -d <branch>` first. If it refuses because the PR was **squash-merged** — the branch's commits are not ancestors of the base, so git cannot prove it was merged — use `git branch -D <branch>`. Only ever reach for `-D` having confirmed `MERGED` in step 1.
 
 7. **Confirm the remote branch is gone.** GitHub deletes it on merge only when the repository has automatic branch deletion enabled. If it survives, `git push origin --delete <branch>`.
@@ -95,7 +103,7 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
 - **`-D` only after confirming `MERGED`.** Force-deleting on an assumption is how work disappears.
 - **Verify the issue closed.** Never report it closed on the strength of `Closes #N` being present in the PR body.
 - **Report the definition of done honestly.** If the issue has no verification evidence, say that — do not let a merged PR stand in for a check that passed.
-- **Never write to `arch/` here.** Step 4 leaves you on the default branch with a clean tree, which makes recording a missing decision look free. It is an unreviewed commit straight to the default branch, outside any unit of work. Report the gap; fixing it is the next `/issue-to-task`, not this skill's job.
+- **Never write to `arch/` here, and never move within it.** Step 4 leaves you on the default branch with a clean tree, which makes both recording a missing decision and sweeping a retired one into `arch/archive/` look free. Either is an unreviewed commit straight to the default branch, outside any unit of work — and a move is the worse of the two, because it can break a build that references the entry by path with nothing between it and the default branch. Archiving belongs to `/implement`, where it rides a branch, a plan and a pull request. Report the gap; fixing it is the next `/issue-to-task`, not this skill's job.
 
 ## Output
 
@@ -104,6 +112,7 @@ Report:
 - The issue's final state, and whether it closed automatically or had to be closed explicitly.
 - What was deleted, locally and remotely.
 - The five done criteria, each with its evidence.
+- Any superseded entry still in the top level of `arch/`, by path, named as work for the next `/issue-to-task`. Omit the line when there is none.
 
 ## Next step
 

@@ -74,7 +74,7 @@ Show me the list before creating anything.
 
 Do **not** generate intermediate documents between the spec and the issues (PRDs, milestone docs, epic breakdowns). Each generative layer *re-derives* content that already exists somewhere else, so it drifts from intent and goes stale the moment implementation deviates. Spec + `arch/` + issues is the whole stack.
 
-The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives in `arch/`, one file per decision, in every repo — spec or no spec. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
+The architecture decision record is the one exception, and not because of where it sits. It is append-only, it restates nothing — each entry is the sole record of a decision and the alternatives it closed off — and it cannot go stale, because superseding an entry is itself an entry. It lives in `arch/`, one file per decision, in every repo — spec or no spec. A superseded entry moves into `arch/archive/` rather than being deleted: it keeps its number and its wording forever, and agents ignore it except to count numbers and to resolve a constraint on an issue older than the supersede. That is what keeps the log both complete and small enough to read. If your org needs milestones and epics for coordination, keep them in your tracker for humans — they are not inputs to the agent.
 
 ---
 

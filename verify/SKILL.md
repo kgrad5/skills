@@ -15,7 +15,7 @@ Check and report; never assume.
 - `gh auth status` succeeds.
 - A test or check command is discoverable from `CLAUDE.md`, `package.json`, `Makefile`, `pyproject.toml`, or the issue itself. If none is found, **ask**. Never invent one.
 - **The spec this issue descends from is named on its `Spec:` line** — `specs/<slug>.md`. Read that file, not whichever spec happens to be at hand: a check written against the wrong spec proves nothing about this one. A repo predating the `specs/` layout may carry a root `SPEC.md`; use it and say so. If the issue names **no** spec, say so and carry on from the issue alone — a spec is optional everywhere in this loop. Only stop when the issue names a spec the repo does not hold.
-- If the issue carries a `Constrained by ADR-<n>` line, the matching file exists in `arch/`. If the issue names an entry `arch/` does not hold, say so and stop. Never reconstruct the decision from the issue.
+- If the issue carries a `Constrained by ADR-<n>` line, the matching file exists in `arch/` **or in `arch/archive/`**. An issue outlives the entry that bound it, so look in both before concluding anything; only when neither holds it do you say so and stop. Never reconstruct the decision from the issue. When the match comes from the archive, read it and say so, naming the entry that superseded it — the constraint the issue was written against is no longer the live one, and that is worth knowing before the check runs rather than after.
 
 ## Inputs
 
