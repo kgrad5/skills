@@ -54,7 +54,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
    If the plan's Architecture decisions section says `None`, the writing half of this step is a no-op — but the archiving half below still runs, because a backlog is not this unit of work's doing and waiting for a plan that mentions it is waiting forever. If the plan has **no such section at all** — one approved before this step existed — do not infer its contents: treat any decision the work makes as unplanned and stop, per step 9. An entry left in the issue comment is lost: the comment is a draft, the file is the record.
 
    **Then archive what the log has retired.** `git mv` every file in `arch/` whose Status line reads `Superseded by ADR-<n>` into `arch/archive/`, keeping its filename byte for byte. Two kinds of file move here and both are in scope:
-   - **The entry this unit of work just superseded.** The move is the second half of the supersede, so the plan's file list should already name it.
+   - **The entry this unit of work just superseded.** The move is the second half of the supersede, so the plan's file list already names the file — at its pre-move path. Nothing in `/issue-to-task` produces the `arch/archive/` destination, so do not expect to find it listed, and do not treat its absence as off-plan work.
    - **Any entry an earlier unit of work superseded and left in place.** This sweep is the one file move the scope guard permits without asking. It adds no decision, alters no wording, and drains a backlog that empties no other way: nothing ever supersedes an already-superseded entry a second time, so an entry missed once stays missed.
 
    Four constraints, of which the third is the one that bites:

@@ -67,7 +67,7 @@ If more than one matches, ask which. If none matches, say so and stop — an iss
    ```
    `--prune` clears the stale remote-tracking ref if GitHub already deleted the branch on merge.
 
-5. **Confirm the architecture decisions landed — only if the PR recorded any.** If the PR body carries no `Decisions recorded:` line, there is nothing to confirm: skip to step 6 without comment. Otherwise: you are standing on the updated default branch, which is the only place this check means anything — the branch you came from always has the entry. Read the log from the branch, not the checkout, because a squash merge leaves none of the PR's commits behind:
+5. **Confirm the architecture decisions landed, then flag any retired entry.** If the PR body carries no `Decisions recorded:` line, there is nothing to confirm: skip without comment to the flagging paragraph below, which runs on every unit of work — **not** to step 6. The runs with no decision to confirm are exactly the runs where no sweep happened, so they are the ones the backstop exists for. Otherwise: you are standing on the updated default branch, which is the only place this check means anything — the branch you came from always has the entry. Read the log from the branch, not the checkout, because a squash merge leaves none of the PR's commits behind:
 
    ```bash
    git ls-tree --name-only <default-branch> arch/
