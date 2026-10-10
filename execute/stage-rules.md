@@ -48,7 +48,7 @@ Each one is a point where a chained skill asks the user. Under `/execute` the st
 - **ship step 5 — ADR authored during ship.** Authorized. Write it at `**Status:** Accepted`, number it per the rule above, and list it in the PR body under `Decisions recorded` with the words `authored at ship time, not in the approved plan`, and in the result's `adrs_outside_plan`. That flag is the user's audit trail for an entry nobody approved live.
 - **ship step 5 — a review blocker the stage cannot fix.** Post it as a failure (see Advance) and return `failed`.
 - **ship step 7 — confirm before the PR.** Self-confirmed. The PR body contains the line `Opened under /execute.` — the merge stage and resume merge nothing without it.
-- **ship step 11 — do not merge.** Still holds for the ship stage. Merging is the merge stage's job.
+- **ship step 12 — do not merge.** Still holds for the ship stage. Merging is the merge stage's job.
 - **finish step 2 — dirty tree.** The main checkout must be clean; if it is not, return `blocked` naming the files. Never stash, clean or reset.
 
 ### The fix stage

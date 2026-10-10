@@ -75,11 +75,16 @@ The order below is deliberate. Do not reorder it.
    - `README updated: <what changed>`, when this diff edits the README
    - `Decisions recorded: ADR-<n>`, when this diff records any. The reader is about to merge in the GitHub UI; this is where they see the record keeping up with the code. Omit the line entirely when there are none — a PR body that announces its own emptiness teaches the reader to skip the line
 
-   **If `--draft` was given, stop here.** A draft PR is a deliberate request to pause before landing.
+   **If `--draft` was given, run step 11, then stop.** A draft PR is a deliberate request to pause before landing.
 
 10. **Check the base.** `Closes #N` only auto-closes the issue on merge into the repository's default branch. If the resolved base is anything else, say so plainly — the issue will not auto-close, and `/finish` will have to close it explicitly.
 
-11. **Stop.** Report the PR URL and that the merge is now yours to make in the GitHub UI, where the diff is readable. Do not merge, do not wait.
+11. **Clean up the agents this run started.** `/code-review` and the plan-conformance check may have launched agents. With agent teams on, a named one stays registered as an idle teammate after it finishes. This step covers `/ship` run on its own; under `/execute` the orchestrator prunes across the whole run instead.
+    - Call `ListAgents`. For each subagent or teammate **this `/ship` launched**, directly or through `/code-review`, that has finished: stop it if it is still registered (`TaskStop`), and if it is a teammate, remove it from the team. To remove a teammate, copy `~/.claude/teams/<team>/` to the scratchpad first, then delete only that member from `config.json` and its entry under `inboxes/`.
+    - Leave alone anything still running, anything another skill or the user started, and the `team-lead`. A review whose findings have not arrived is still running: never prune it to finish faster.
+    - Report what was removed. Report nothing if there was nothing to remove.
+
+12. **Stop.** Report the PR URL and that the merge is now yours to make in the GitHub UI, where the diff is readable. Do not merge, do not wait.
 
 ## Hard rules
 
