@@ -1,10 +1,20 @@
 # Unit-of-work skills
 
-Eight skills that make [`unit-of-work-process.md`](unit-of-work-process.md) invocable instead of remembered: one task, from issue to merged, with a check that can pass or fail at every gate.
+Nine skills that make [`unit-of-work-process.md`](unit-of-work-process.md) invocable instead of remembered: one task, from issue to merged, with a check that can pass or fail at every gate.
 
 Installed at `~/.claude/skills/`, so they load in every session on this machine.
 
 ## The loop
+
+The full run is two commands. `/brainstorm` turns an idea into issues; `/execute` turns issues into merged code:
+
+```
+/brainstorm         → asks for your idea, narrows it with you, files one issue per step with a dependency DAG
+/clear
+/execute 12 13 14   → every issue planned, built, verified, merged and finished, each as soon as its dependencies close
+```
+
+The same chain by hand, a stage at a time — `/brainstorm` is `/idea-to-spec` and `/spec-to-issues` in one pass:
 
 ```
 /idea-to-spec  →  /spec-to-issues  →  ┐
@@ -28,6 +38,7 @@ Or, unattended, the whole backlog at once:
 
 | Skill | Does | Refuses to |
 |---|---|---|
+| `/brainstorm [idea]` | Asks for your idea, narrows it with you to the smallest version worth building, splits it into single-focus steps with a dependency DAG, writes the spec and ADRs when the idea needs them, and after one approval lands them and files one issue per step; a small change skips the spec | Push or file anything before your one approval; write a spec for a small change; add a dependency edge that is not real; restart a half-finished filing loop |
 | `/idea-to-spec` | Interviews you, writes `specs/<slug>.md` and an `arch/` file per decision | Overwrite an existing spec; renumber or delete an existing ADR; spec a one-line change |
 | `/spec-to-issues` | A spec → ordered issues, each naming its spec, with a pass/fail check and the ADRs that bind it | Create anything before you approve the list; file an issue with no check, or with no spec |
 | `/issue-to-task <n>` | Loads the issue, restates it *and the ADRs binding it*, gates the plan on six criteria, posts the plan — and any ADR it drafts — to the issue | Plan an issue whose restatement you say is wrong, or one with no verification check, until the check is written into the issue; leave the plan silent about whether it decides architecture |
@@ -67,7 +78,7 @@ Four things from those sections are **not** keystrokes, so they live in the skil
 
 The skills check the first two and tell you what's missing, but they can't fix them. Nothing checks the last two — they are on you:
 
-1. `gh auth login` — seven of the eight depend on it; only `/idea-to-spec` does not.
+1. `gh auth login` — eight of the nine depend on it; only `/idea-to-spec` does not.
 2. A check that runs by command. Without one, `/verify` has nothing to do.
 3. `CLAUDE.md`, short — build/test/lint commands, style that differs from defaults, repo etiquette, gotchas. `/init` generates one; prune it hard.
 4. `/permissions` — allowlist your test runner, linter, `git commit`, `git push`, and `gh`.
