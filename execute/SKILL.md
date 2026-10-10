@@ -36,8 +36,8 @@ Every stage is its own **fresh, unnamed Agent call** with the `effort` set from 
 |---|---|---|
 | plan — `/issue-to-task` | `max` | Every later stage inherits its mistakes; it drafts the ADRs |
 | implement — `/implement` | `high` | Executes an approved plan under a mechanical scope guard |
-| verify — `/verify` | `max` | Evidence and ADR-contradiction checks are the definition of done |
-| ship — `/ship` to an open PR | `max` | Review and plan conformance are the only scrutiny before an unattended merge |
+| verify — `/verify` | `medium` | Runs the check, red-on-base and the ADR check by the fixed steps in `stage-rules.md` |
+| ship — `/ship` to an open PR | `high` | Its scrutiny runs in two review subagents at `high`; the stage triages them, fixes once and opens the PR |
 | fix — repair a recorded failure, then hand back | `high` | Same footing as implement, with the failure in hand |
 | merge — integrate base, re-check, squash-merge | `high` | Re-runs the check against a base that moved; renumbers ADRs on collision |
 | finish — `/finish` | `low` | Mechanical gh and git steps whose refusals are already built in |
@@ -82,7 +82,8 @@ Then take the **first** row that matches, for every candidate and every issue wi
 | `OPEN`, without that line | — | `blocked`: a PR this skill did not open is never merged by it |
 | none | `<!-- unit-of-work:execute-failed -->` newer than the last plan comment | `failed`; reported, not restarted |
 | none | no approved-plan comment | plan |
-| none | approved plan, worktree or branch with changes beyond the base (committed or not) | verify — a failure routes to fix, which finishes the work |
+| none | approved plan, worktree with uncommitted changes | implement, its prompt saying to keep those changes, finish the plan and commit |
+| none | approved plan, branch with commits beyond the base | verify |
 | none | approved plan, nothing implemented | implement |
 
 "Ensure the worktree" means: reuse the one `git worktree list --porcelain` shows for the branch; else `git worktree add <path> <branch>`. Never remove a worktree on resume — it may be the only copy of uncommitted work — and never create a second one for the same branch.
@@ -126,8 +127,8 @@ Every prompt carries:
 - **Skill rule.** Run the stage's skill with the Skill tool (`issue-to-task`, `implement`, `verify`, `ship`, `finish`), passing the issue number — and for finish, the PR number, which `/finish` accepts in place of searching. If the Skill tool is unavailable, read `~/.claude/skills/<name>/SKILL.md` and follow it exactly. The merge and fix stages have no skill; their instructions are below.
 - **Tool rule.** Subagents have no `AskUserQuestion`, `EnterPlanMode` or `ExitPlanMode`. Where a skill uses one, apply the matching gate; where none matches and the question is truly breaking, return `needs_user`; otherwise decide, and record the decision where the skill would have recorded the user's answer.
 - **The rules file, by reference.** The expanded absolute path of `~/.claude/skills/execute/stage-rules.md` and the line *first action: read this file in full; it binds this stage; end your result's `summary` with its last line*. Do **not** paste its sections into the prompt. A result whose summary lacks `END STAGE-RULES v1` counts as `failed`.
-- **For merge:** the PR number, the plan's file list and the issue's verification check, so the stage need not reconstruct them.
-- **Stop at the stage boundary.** Plan stops after posting the plan; implement after the suite passes; verify after posting evidence; ship after the PR is open; fix after its repair is committed or left in the tree; merge after the PR reads `MERGED`; finish after its report.
+- **For merge:** the PR number, the plan's file list with amendments applied, and the issue's verification check, so the stage need not reconstruct them.
+- **Stop at the stage boundary.** Plan stops after posting the plan; implement after the suite passes; verify after posting evidence; ship after the PR is open; fix after its repair is committed; merge after the PR reads `MERGED`; finish after its report.
 - **Result.** End with a single fenced `json` block and nothing after it:
 
   ```json
@@ -151,7 +152,7 @@ Every prompt carries:
 | verify `ok`, PR open | merge |
 | verify `failed` | fix, then verify |
 | ship `ok` | `waiting:merge`; merge when the slot is free |
-| ship `failed` on a review blocker | fix, then verify, then ship |
+| ship `failed` on a review blocker or a check that fails after its fix round | fix, then verify, then ship |
 | merge `ok` | remove the worktree, then finish |
 | merge `failed` because its re-check failed | fix, then verify, then merge — the PR already exists; never route back through ship |
 | finish `ok` | `done`; re-fetch the issue list |
@@ -192,11 +193,7 @@ Any output is **truly breaking**: stop launching, report it, ask. `arch/` is app
 
 Then remove the ADR reservation for every entry now on `origin/<default>` (`$LOCKS/adr/<n>`; see the ADR numbering gate in `stage-rules.md`). Remove the rest at the end of the run. Never remove a reservation whose entry has not landed.
 
-**Pruning idle agents,** after every finish and once more when the run ends. Named agents, such as a `/code-review` fork, stay registered as idle teammates after their work is done when agent teams are on. Left alone, they crowd the agent list and hold onto inbox files. Prune only what is idle:
-
-1. Call `ListAgents`. Never stop a subagent shown as `running`. A subagent shown as `completed` while one of its own children is still `running` is waiting on that child, not idle, so leave both. Reap any other `completed` subagent left over from a returned stage with `TaskStop`.
-2. For teammates (agent teams on): take every name in the `members` list of `~/.claude/teams/<team>/config.json` except `team-lead`, and call `TaskStop` with each name. `ListAgents` does not reliably list them, so use the file. A result of "not found" means that teammate is already gone. Skip any teammate whose work is still pending, such as a review a running ship stage is waiting on. Teammates are often started by a stage's own `/code-review`, not by the orchestrator, so check the whole list, not only names you launched. Never edit `config.json` or `inboxes/` yourself. The session keeps teammates in memory, so editing the file hides them from the file but leaves them listed as idle agents, and the names you would need for `TaskStop` are gone.
-3. Re-run `ListAgents` and confirm that only running work remains. Report the counts (subagents reaped, teammates pruned) in the run's output.
+**Reaping finished agents,** after every finish and once more when the run ends: call `ListAgents` and `TaskStop` each `completed` subagent left from a returned stage. Never stop one shown as `running`, nor a `completed` one whose own child is still `running` — it is waiting on that child. Report the count in the run's output. Stages launch only unnamed agents, so no teammates should exist; if agent teams are on and some do, `TaskStop` each idle one by its name in the `members` list of `~/.claude/teams/<team>/config.json` — never `team-lead`, never one whose work is pending — and never edit that file or `inboxes/`: the session keeps teammates in memory, and an edited file loses the names `TaskStop` needs.
 
 ## Stage rules
 
@@ -210,7 +207,7 @@ The Gates, the fix and merge stage instructions, Shared resources, Truly breakin
 - **Merge only PRs this run's ship stage opened**, identified by `Opened under /execute.` in the body.
 - **Find a PR only by the filtered lookup in step 2.**
 - **Two strikes and the issue is `failed`,** with the diagnosis on the issue. No third attempt in the same run.
-- **Prune idle agents, never working ones.** Prune after every finish and at the end of the run, as described above; a running subagent and its parent are never pruned.
+- **Reap finished agents, never working ones,** after every finish and at the end of the run; a running subagent and its parent are never stopped.
 - **Report faithfully.** A `blocked` or `failed` issue is reported as such, never folded into a success count.
 
 ## Output
@@ -222,7 +219,7 @@ As each issue finishes, one line: issue, outcome, PR URL. At the end:
 - `arch/` files recorded, by path, flagging every one in `adrs_outside_plan`.
 - Issue bodies edited to remove ambiguity, by number.
 - Locks waited on or swept, and worktrees removed.
-- Idle agents pruned: subagents reaped and teammates removed.
+- Finished agents reaped, and any teammates pruned.
 
 ## Next step
 

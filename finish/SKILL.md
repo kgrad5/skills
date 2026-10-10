@@ -40,10 +40,11 @@ Resolve the **issue** number in this order. Stop at the first that yields one.
 Then, unless rule 1 already produced it, find the PR:
 
 ```bash
-gh pr list --state all --search "Closes #<N> in:body" --json number,state,headRefName
+gh pr list --state all --limit 1000 --search "#<N> in:body" --json number,state,headRefName,body \
+  | jq --arg n "<N>" '[.[] | select(.body | test("(?i)\\bcloses #" + $n + "\\b")) | del(.body)]'
 ```
 
-If more than one matches, ask which. If none matches, say so and stop — an issue with no PR has nothing to finish.
+GitHub search is not a phrase match, so `Closes #1` also finds a PR that closes #12; the `jq` filter keeps only exact matches. If more than one matches, ask which. If none matches, say so and stop — an issue with no PR has nothing to finish.
 
 ## Procedure
 

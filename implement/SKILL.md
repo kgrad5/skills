@@ -30,7 +30,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 
 1. **Retrieve the approved plan**, in this order:
    - This conversation, if `/issue-to-task` ran in it
-   - `gh issue view <N> --json comments` — the **last** comment containing `<!-- unit-of-work:approved-plan -->`
+   - `gh issue view <N> --json comments` — the **last** comment containing `<!-- unit-of-work:approved-plan -->` that is not an `Amended:` comment, with every later `Amended:` comment applied in order
    - The harness plan file, if the session reported one exists
 
    **If no plan is found anywhere, stop and refuse.** Say: no approved plan for issue `<N>`; run `/issue-to-task <N>` first. Implementing from the issue alone is exactly the unplanned work this process exists to prevent, and it is the failure mode most likely to look like success.

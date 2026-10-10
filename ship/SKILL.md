@@ -14,7 +14,8 @@ Check and report; never assume.
 
 - `gh auth status` succeeds.
 - `gh repo view --json defaultBranchRef` resolves the base branch. Use that value everywhere; never hardcode `main` or `master`.
-- The working tree contains changes to ship (`git status --porcelain`).
+- There is work to ship: uncommitted changes (`git status --porcelain`) or commits ahead of the base (`git log --oneline origin/<default-branch>..HEAD`).
+- No open pull request already carries this branch: `gh pr list --head "$(git branch --show-current)" --state open --json url`. If one does, report its URL and stop.
 
 ## Inputs
 
@@ -33,15 +34,15 @@ The order below is deliberate. Do not reorder it.
 
 1. **Refuse if the current branch is the base branch.** Say so and stop. Nothing gets committed directly to the default branch. If `/implement` was skipped, run `gh issue develop <N> --checkout` first.
 
-2. **Commit first**, with a descriptive message. This gives the reviewer a stable object and puts the work beyond the reach of `/rewind`, which does not cover Bash side effects.
+2. **Commit first** anything uncommitted, with a descriptive message. This gives the reviewer a stable object and puts the work beyond the reach of `/rewind`, which does not cover Bash side effects.
 
 3. **Delegate correctness review** to the bundled `/code-review` skill, scoped to this branch's diff.
-   - `/code-review` forks and runs in the background by default. **If it returns an agent name or handle rather than findings, stop.** Report that the review is still running and that `/ship` should be re-run once it lands. Do not proceed past this gate on a handle — a review you did not read is not a review.
+   - `/code-review` forks and runs in the background by default. **If it returns an agent name or handle rather than findings, stop.** Report that the review is still running and that `/ship` should be re-run in this session once it lands; on that re-run, if `HEAD` is still the commit it reviewed, use its landed findings instead of invoking `/code-review` again. Do not proceed past this gate on a handle — a review you did not read is not a review.
    - This pass and step 4 are the only scrutiny this change will get. There is no second human. Do not treat them as a formality to clear.
 
 4. **Check plan conformance** — the thing `/code-review` cannot do, because it never sees the issue or the plan.
    - Steps 3 and 4 read the same committed diff and may run concurrently; step 5 starts only after both have returned.
-   - Retrieve the approved plan: this conversation, then `gh issue view <N> --json comments` for the last comment containing `<!-- unit-of-work:approved-plan -->`, then the harness plan file.
+   - Retrieve the approved plan: this conversation, then `gh issue view <N> --json comments` for the last comment containing `<!-- unit-of-work:approved-plan -->` that is not an `Amended:` comment, with every later `Amended:` comment applied in order, then the harness plan file.
    - If no plan is retrievable, review the diff against **the issue alone**, and say so explicitly — in your report and in the PR body. Never claim conformance you did not check.
    - **The decision log is `arch/` at the repo root**, one file per decision. `arch/archive/` holds the entries later decisions retired; read it only to resolve a number, never to judge scope. The plan's file list names the exact paths it drafted. Read the issue's `Spec:` line for the spec this work descends from, and judge scope against that spec — not against a spec you guessed at.
    - Apply **the same six criteria as `/issue-to-task`, to the diff instead of the plan**:
@@ -79,10 +80,7 @@ The order below is deliberate. Do not reorder it.
 
 10. **Check the base.** `Closes #N` only auto-closes the issue on merge into the repository's default branch. If the resolved base is anything else, say so plainly — the issue will not auto-close, and `/finish` will have to close it explicitly.
 
-11. **Clean up the agents this run started.** `/code-review` and the plan-conformance check may have launched agents. With agent teams on, a named one stays registered as an idle teammate after it finishes. This step covers `/ship` run on its own; under `/execute` the orchestrator prunes across the whole run instead.
-    - Call `ListAgents`. For each subagent or teammate **this `/ship` launched**, directly or through `/code-review`, that has finished: call `TaskStop` with its ID, or for a teammate its name, as `/code-review` named it. `/code-review` can start many teammates. Collect their names from the `members` list of `~/.claude/teams/<team>/config.json`, the entries that joined after this `/ship` began, and stop each one. Never edit `config.json` or `inboxes/`: the session keeps teammates in memory, so an edited file leaves them listed as idle agents and loses the names `TaskStop` needs.
-    - Leave alone anything still running, anything another skill or the user started, and the `team-lead`. A review whose findings have not arrived is still running: never prune it to finish faster.
-    - Report what was removed. Report nothing if there was nothing to remove.
+11. **Clean up the agents this run started** — `/ship` run on its own only; under `/execute` the orchestrator reaps across the whole run. Call `ListAgents` and `TaskStop` each agent **this `/ship` launched**, directly or through `/code-review`, that has finished. With agent teams on, `/code-review`'s agents are teammates: stop each by its name in the `members` list of `~/.claude/teams/<team>/config.json`, taking the entries that joined after this `/ship` began, and never edit that file or `inboxes/` — the session keeps teammates in memory, and an edited file loses the names `TaskStop` needs. Leave alone anything still running (a review whose findings have not arrived is still running), anything another skill or the user started, and `team-lead`. Report what was removed, or nothing if there was nothing.
 
 12. **Stop.** Report the PR URL and that the merge is now yours to make in the GitHub UI, where the diff is readable. Do not merge, do not wait.
 
