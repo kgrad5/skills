@@ -192,6 +192,12 @@ Any output is **truly breaking**: stop launching, report it, ask. `arch/` is app
 
 Then remove the ADR reservation for every entry now on `origin/<default>` (`$LOCKS/adr/<n>`; see the ADR numbering gate in `stage-rules.md`). Remove the rest at the end of the run. Never remove a reservation whose entry has not landed.
 
+**Pruning idle agents,** after every finish and once more when the run ends. Named agents, such as a `/code-review` fork, stay registered as idle teammates after their work is done when agent teams are on. Left alone, they crowd the agent list and hold onto inbox files. Prune only what is idle:
+
+1. Call `ListAgents`. Never stop a subagent shown as `running`. A subagent shown as `completed` while one of its own children is still `running` is waiting on that child, not idle, so leave both. Reap any other `completed` subagent left over from a returned stage with `TaskStop`.
+2. For teammates (agent teams on): every `roster` entry is idle. Find the team directory from the session, `~/.claude/teams/<team>/`. Copy it to the scratchpad as a backup. Rewrite `config.json` keeping only the `team-lead` member, and delete each removed member's file or directory under `inboxes/`. Do not touch any teammate `ListAgents` shows as active.
+3. Re-run `ListAgents` and confirm that only running work remains. Report the counts (subagents reaped, teammates pruned) in the run's output.
+
 ## Stage rules
 
 The Gates, the fix and merge stage instructions, Shared resources, Truly breaking, New issues and Rules for every stage live in `~/.claude/skills/execute/stage-rules.md`. **Read it in full at the start of every run**; it binds the orchestrator as well as every stage. Its last line is the sentinel `END STAGE-RULES v1`.
@@ -204,6 +210,7 @@ The Gates, the fix and merge stage instructions, Shared resources, Truly breakin
 - **Merge only PRs this run's ship stage opened**, identified by `Opened under /execute.` in the body.
 - **Find a PR only by the filtered lookup in step 2.**
 - **Two strikes and the issue is `failed`,** with the diagnosis on the issue. No third attempt in the same run.
+- **Prune idle agents, never working ones.** Prune after every finish and at the end of the run, as described above; a running subagent and its parent are never pruned.
 - **Report faithfully.** A `blocked` or `failed` issue is reported as such, never folded into a success count.
 
 ## Output
@@ -215,6 +222,7 @@ As each issue finishes, one line: issue, outcome, PR URL. At the end:
 - `arch/` files recorded, by path, flagging every one in `adrs_outside_plan`.
 - Issue bodies edited to remove ambiguity, by number.
 - Locks waited on or swept, and worktrees removed.
+- Idle agents pruned: subagents reaped and teammates removed.
 
 ## Next step
 
