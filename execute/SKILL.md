@@ -195,7 +195,7 @@ Then remove the ADR reservation for every entry now on `origin/<default>` (`$LOC
 **Pruning idle agents,** after every finish and once more when the run ends. Named agents, such as a `/code-review` fork, stay registered as idle teammates after their work is done when agent teams are on. Left alone, they crowd the agent list and hold onto inbox files. Prune only what is idle:
 
 1. Call `ListAgents`. Never stop a subagent shown as `running`. A subagent shown as `completed` while one of its own children is still `running` is waiting on that child, not idle, so leave both. Reap any other `completed` subagent left over from a returned stage with `TaskStop`.
-2. For teammates (agent teams on): every `roster` entry is idle. Find the team directory from the session, `~/.claude/teams/<team>/`. Copy it to the scratchpad as a backup. Rewrite `config.json` keeping only the `team-lead` member, and delete each removed member's file or directory under `inboxes/`. Do not touch any teammate `ListAgents` shows as active.
+2. For teammates (agent teams on): call `TaskStop` with each idle teammate's name. Find the names in `ListAgents` or in the `members` list of `~/.claude/teams/<team>/config.json`; never stop `team-lead`, or any teammate whose work is still pending. Stopping a teammate is what clears it from the session's agent list. Editing `config.json` alone does not: the session keeps its teammates in memory and still shows them as idle agents.
 3. Re-run `ListAgents` and confirm that only running work remains. Report the counts (subagents reaped, teammates pruned) in the run's output.
 
 ## Stage rules

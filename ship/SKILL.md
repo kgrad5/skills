@@ -80,7 +80,7 @@ The order below is deliberate. Do not reorder it.
 10. **Check the base.** `Closes #N` only auto-closes the issue on merge into the repository's default branch. If the resolved base is anything else, say so plainly — the issue will not auto-close, and `/finish` will have to close it explicitly.
 
 11. **Clean up the agents this run started.** `/code-review` and the plan-conformance check may have launched agents. With agent teams on, a named one stays registered as an idle teammate after it finishes. This step covers `/ship` run on its own; under `/execute` the orchestrator prunes across the whole run instead.
-    - Call `ListAgents`. For each subagent or teammate **this `/ship` launched**, directly or through `/code-review`, that has finished: stop it if it is still registered (`TaskStop`), and if it is a teammate, remove it from the team. To remove a teammate, copy `~/.claude/teams/<team>/` to the scratchpad first, then delete only that member from `config.json` and its entry under `inboxes/`.
+    - Call `ListAgents`. For each subagent or teammate **this `/ship` launched**, directly or through `/code-review`, that has finished: call `TaskStop` with its ID, or for a teammate its name, as `/code-review` named it. Stopping a teammate clears it from the session's agent list; editing the team's `config.json` does not.
     - Leave alone anything still running, anything another skill or the user started, and the `team-lead`. A review whose findings have not arrived is still running: never prune it to finish faster.
     - Report what was removed. Report nothing if there was nothing to remove.
 
