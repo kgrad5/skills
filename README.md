@@ -1,6 +1,6 @@
 # Unit-of-work skills
 
-Seven skills that make [`unit-of-work-process.md`](unit-of-work-process.md) invocable instead of remembered: one task, from issue to merged, with a check that can pass or fail at every gate.
+Eight skills that make [`unit-of-work-process.md`](unit-of-work-process.md) invocable instead of remembered: one task, from issue to merged, with a check that can pass or fail at every gate.
 
 Installed at `~/.claude/skills/`, so they load in every session on this machine.
 
@@ -19,6 +19,13 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
                                          /finish 42       → branch deleted, issue closed
 ```
 
+Or, unattended, the whole backlog at once:
+
+```
+/execute            → every open issue, each stage in its own subagent, merged and finished
+/execute 3 4 5      → only those issues (plus any prerequisite a worker files for them)
+```
+
 | Skill | Does | Refuses to |
 |---|---|---|
 | `/idea-to-spec` | Interviews you, writes `specs/<slug>.md` and an `arch/` file per decision | Overwrite an existing spec; renumber or delete an existing ADR; spec a one-line change |
@@ -27,6 +34,7 @@ Installed at `~/.claude/skills/`, so they load in every session on this machine.
 | `/implement` | Branches, writes the failing tests, implements, writes the plan's ADR into `arch/`, sweeps superseded entries into `arch/archive/` | Run without an approved plan; touch a file the plan doesn't list; make a decision the plan didn't draft; archive an entry anything references by path |
 | `/verify` | Runs the issue's check, shows command + full output, posts the evidence to the issue | Summarize output; proceed on a failure — a failure hands back to `/implement` |
 | `/ship` | Commits first, then reviews vs. the plan and `arch/`, re-verifies, opens the PR | PR from the default branch; proceed past `/code-review` on an agent handle; open the PR without your explicit yes; use evidence older than the last fix; open a PR whose diff decides architecture with nothing recorded; merge |
+| `/execute [n ...]` | Runs the chain above for every open issue whose dependencies are closed, in parallel: each stage is a fresh, unnamed subagent at its own effort (`max` for plan, verify, ship; `high` for implement, fix, merge; `low` for finish), self-answering every gate and leaving the answer on the issue or PR. Squash-merges the PRs it opened, runs `/finish`, re-reads the backlog, and works the issues its workers file | Name a subagent; run anything in your main checkout except `/finish`; merge or finish two issues at once; merge a PR it did not open; bypass branch protection or force-push; try a stage a third time; interrupt you for anything outside its seven truly-breaking cases |
 | `/finish [n]` | Confirms the merge happened, closes the issue if `Closes #N` didn't fire, confirms the `arch/` files landed on the default branch, flags retired entries the sweep missed, deletes the branch | Touch anything if the PR isn't `MERGED`, or the tree is dirty; write the ADR log itself, or move anything within it |
 
 ## Where the state lives
@@ -59,10 +67,12 @@ Four things from those sections are **not** keystrokes, so they live in the skil
 
 The skills check the first two and tell you what's missing, but they can't fix them. Nothing checks the last two — they are on you:
 
-1. `gh auth login` — six of the seven depend on it; only `/idea-to-spec` does not.
+1. `gh auth login` — seven of the eight depend on it; only `/idea-to-spec` does not.
 2. A check that runs by command. Without one, `/verify` has nothing to do.
 3. `CLAUDE.md`, short — build/test/lint commands, style that differs from defaults, repo etiquette, gotchas. `/init` generates one; prune it hard.
 4. `/permissions` — allowlist your test runner, linter, `git commit`, `git push`, and `gh`.
+
+`/execute` adds two more, and checks both before it launches anything. It needs a permission mode that does not prompt per tool (auto or bypass): in default mode every worker's prompts queue in your session, and in `dontAsk` mode they are silently denied. And if `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` is on, a named subagent becomes a teammate running in your main checkout. `/execute` never names one, but it asks whether you would rather turn teams off for the run.
 
 ## Retrofitting an existing backlog
 
@@ -83,5 +93,7 @@ No `allowed-tools`: it *restricts* the toolset rather than pre-approving it, and
 The six-criteria checklist appears in three places — `/issue-to-task` and `/ship` (plan-vs-issue before the work, diff-vs-plan after), and again as the hand checklist in `unit-of-work-process.md` step 4. Criteria 1–5 mirror each other — the same check, worded plan-side and diff-side; change one, change the other. Criterion 6 is deliberately asymmetric: `/issue-to-task` requires the entry to be **drafted in the plan** at `Status: Proposed`, `/ship` requires it to be **written into the log** at `Status: Accepted`.
 
 What must stay identical is the bar for what earns an entry. It now appears in three places — `/idea-to-spec`, `/issue-to-task`, `/ship` — plus `unit-of-work-process.md`. Change one, change all four.
+
+**`/execute` restates every other skill's gates.** Its Gates section answers each point where `/issue-to-task`, `/implement`, `/verify`, `/ship` or `/finish` would ask you, and its stage prompts carry that section verbatim. Add, move or reword a gate in one of those skills and the matching line in `/execute` goes stale; change both together.
 
 **How a spec section is cited** lives in exactly one place, `/idea-to-spec` under "Citing a spec section": `specs/<slug>.md §4.4`, never a bare `§4.4`, anywhere outside the spec itself. `/spec-to-issues` and `/issue-to-task` point at it rather than restating it, because a rule copied into four files is a rule that drifts in three of them. It is also the one convention here worth enforcing with a test in the target repo — it was written down once and broken in the next file authored under it, which is what a rule that depends on memory does.
