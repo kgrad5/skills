@@ -8,7 +8,7 @@ argument-hint: [issue-number ...] [--max-parallel <n>]
 
 Guarantees that an unattended run of the backlog goes through every gate the manual loop has — plan, scope guard, evidence, review, recorded decisions — with a subagent answering the gates a human would have answered, and with every answer left on the issue or the pull request where a human can audit it later.
 
-Invoking `/execute` is the user's **standing authorization** for four things the other skills otherwise refuse without a live yes: self-confirmed restatements and plans; ADR entries authored at ship time and marked `Accepted`, provided each is flagged as such in the PR body; pull requests opened without a confirmation prompt; and **squash-merging the pull requests this run opened** once review and verification pass. Nothing else is authorized. Every rule in the chained skills not answered under "Gates" below still binds.
+Invoking `/execute` is the user's **standing authorization** for four things the other skills otherwise refuse without a live yes: self-confirmed restatements and plans; ADR entries authored at ship time and marked `Accepted`, provided each is flagged as such in the PR body; pull requests opened without a confirmation prompt; and **squash-merging the pull requests this run opened** once review and verification pass. Nothing else is authorized. Every rule in the chained skills not answered under "Gates" in `stage-rules.md` still binds.
 
 ## Preconditions
 
@@ -26,7 +26,7 @@ Arguments given: $ARGUMENTS
 
 - Every argument matching `^#?[0-9]+$` is a **selected issue**. With none, the candidate set is every open issue, re-read throughout the run, until none remain.
 - With some, the candidate set is exactly those, plus any issue a worker files during the run that a selected issue now depends on. Other new issues are filed and reported, not worked. A selected issue that depends on an **open, unselected** issue is reported blocked and never started.
-- `--max-parallel <n>` caps concurrent stage agents. Default 100, which in practice launches every runnable stage at once. Merge and finish stages are always serial regardless.
+- `--max-parallel <n>` caps concurrent stage agents. Default 100, which in practice launches every runnable stage at once. Merges are always serial among themselves, and so are finishes, regardless.
 
 ## Effort per stage
 
@@ -108,7 +108,7 @@ Keep a state per issue: `queued:<stage>`, `running:<stage>`, `waiting:merge`, `n
 - **Runnable** means `queued` and every dependency satisfied.
 - Launch the next stage of every runnable issue, up to `--max-parallel` stage agents at once.
 - When a stage agent returns, read its result (format below), advance the issue (step 6), and immediately launch whatever became runnable. Do not wait for a wave to finish.
-- **Merge and finish are serial.** At most one issue is in merge or finish at any moment. This keeps two ADRs from landing the same number and two merges from racing the same base.
+- **Merges are serial; finishes are serial; the two lanes overlap.** At most one issue is in merge at any moment, which keeps two merges from racing the same base. The next merge may start once the previous PR reads `MERGED`, the post-merge ADR checks have passed and its worktree is removed; it need not wait for that issue's finish. At most one finish runs at a time, since every finish works in the main checkout.
 - **Re-fetch the issue list** (step 1) after every finish **and** after any stage whose result lists `new_issues`. New issues enter as `queued:plan`. An issue in `waiting:dependency` returns to `queued` at its interrupted stage the moment its new dependency closes.
 - `failed`, `blocked` and `needs_user` are never relaunched by recomputation. `needs_user` returns to `queued` when the user answers; `failed` and `blocked` only on a new `/execute`.
 
@@ -125,7 +125,8 @@ Every prompt carries:
 - **For fix, and for any stage re-run after a failure:** the previous failing stage's `diagnosis` and its verbatim failing output, copied into the prompt, plus the URL of the `<!-- unit-of-work:execute-failure -->` comment that holds them.
 - **Skill rule.** Run the stage's skill with the Skill tool (`issue-to-task`, `implement`, `verify`, `ship`, `finish`), passing the issue number — and for finish, the PR number, which `/finish` accepts in place of searching. If the Skill tool is unavailable, read `~/.claude/skills/<name>/SKILL.md` and follow it exactly. The merge and fix stages have no skill; their instructions are below.
 - **Tool rule.** Subagents have no `AskUserQuestion`, `EnterPlanMode` or `ExitPlanMode`. Where a skill uses one, apply the matching gate; where none matches and the question is truly breaking, return `needs_user`; otherwise decide, and record the decision where the skill would have recorded the user's answer.
-- The **Gates**, **Truly breaking**, **New issues**, **Shared resources** and **Rules for every stage** sections below, verbatim.
+- **The rules file, by reference.** The expanded absolute path of `~/.claude/skills/execute/stage-rules.md` and the line *first action: read this file in full; it binds this stage; end your result's `summary` with its last line*. Do **not** paste its sections into the prompt. A result whose summary lacks `END STAGE-RULES v1` counts as `failed`.
+- **For merge:** the PR number, the plan's file list and the issue's verification check, so the stage need not reconstruct them.
 - **Stop at the stage boundary.** Plan stops after posting the plan; implement after the suite passes; verify after posting evidence; ship after the PR is open; fix after its repair is committed or left in the tree; merge after the PR reads `MERGED`; finish after its report.
 - **Result.** End with a single fenced `json` block and nothing after it:
 
@@ -189,94 +190,17 @@ The second check catches a renumber that moved the file but not its heading.
 
 Any output is **truly breaking**: stop launching, report it, ask. `arch/` is append-only; a landed duplicate cannot be renumbered by a worker.
 
-## Gates
+Then remove the ADR reservation for every entry now on `origin/<default>` (`$LOCKS/adr/<n>`; see the ADR numbering gate in `stage-rules.md`). Remove the rest at the end of the run. Never remove a reservation whose entry has not landed.
 
-Each one is a point where a chained skill asks the user. Under `/execute` the stage answers it as written here, and leaves the answer where a human can audit it.
+## Stage rules
 
-- **issue-to-task step 2 — open dependency.** Never proceed. Return `blocked`, naming it. If this fires, the graph was wrong.
-- **issue-to-task step 4 — restatement.** Self-confirm. If writing the restatement shows the issue is ambiguous, edit the issue with `gh issue edit` so it says what it means, re-read it, and name the edit in the plan comment. Fix the issue, not the conversation.
-- **issue-to-task — no verification check.** Write one into the issue under `## Verification`, derived from the issue's goal and the spec: a command and its expected output.
-- **issue-to-task steps 5–9 — plan mode and approval.** There is no plan mode. Explore read-only, write the plan as text, gate it on the six criteria — fixing any that fail — and post it with the `<!-- unit-of-work:approved-plan -->` marker. The comment is the approval artifact. Its first line after the marker: `Self-approved under /execute.`
-- **issue-to-task — `Undocumented decision:` lines.** Before drafting the entry, grep `arch/` on `origin/<default>` for one already recording it. If present, the plan says `already recorded as ADR-<n>` and drafts nothing.
-- **ADR numbering.** Always count against `origin/<default>` after `git fetch`, never the local default branch, which no worktree advances.
-- **implement precondition — no test command.** Take it from the issue's `## Verification` block. If that is empty too, return `blocked`. Never invent one.
-- **implement step 3 — create the branch.** The worktree is already on the issue's linked branch, whose name the prompt gives. Confirm with `git -C <worktree> branch --show-current` and do **not** run `gh issue develop`: it would create and link a second branch.
-- **implement step 9 — off-plan file or decision.** If the issue's goal requires it, post an amended plan comment — same marker, first line `Amended: <file or decision> — <why the goal requires it>` — and continue; the amendment is the new approved plan. If the goal does not require it, file a new issue for it and stay in scope.
-- **verify step 2 — no check.** As for issue-to-task: write one into the issue.
-- **verify step 4 — check fails.** Post the failure as described under Advance, then return `failed`.
-- **verify step 5 — check cannot run here** (credentials, a browser, hardware, a service nobody can start). Return `blocked` with exactly what it needs.
-- **ship step 3 — `/code-review` returns a handle.** Wait for its findings. If the stage cannot obtain them, run the correctness review as an Agent call over `git diff origin/<default>...HEAD` and wait for its result; if that is impossible too, review the diff cold yourself and say so in the PR body. Never proceed on a handle.
-- **ship step 5 — ADR authored during ship.** Authorized. Write it at `**Status:** Accepted`, number it per the rule above, and list it in the PR body under `Decisions recorded` with the words `authored at ship time, not in the approved plan`, and in the result's `adrs_outside_plan`. That flag is the user's audit trail for an entry nobody approved live.
-- **ship step 5 — a review blocker the stage cannot fix.** Post it as a failure (see Advance) and return `failed`.
-- **ship step 7 — confirm before the PR.** Self-confirmed. The PR body contains the line `Opened under /execute.` — the merge stage and resume merge nothing without it.
-- **ship step 11 — do not merge.** Still holds for the ship stage. Merging is the merge stage's job.
-- **finish step 2 — dirty tree.** The main checkout must be clean; if it is not, return `blocked` naming the files. Never stash, clean or reset.
-
-### The fix stage
-
-Runs in the issue's worktree, with the failure in its prompt. It is not a fresh implementation: keep the branch's tests and changes, reproduce the recorded failure, fix it at the root within the approved plan's file list (an off-plan need follows the implement step 9 gate), run the full suite, and stop. Never loosen an assertion, skip a test or suppress an error to get to green. The next stage — verify — is what judges the fix.
-
-### The merge stage
-
-Runs in the issue's worktree, one at a time across the whole run, and only for a PR whose body contains `Opened under /execute.`
-
-1. `git fetch origin <default>` and `git merge origin/<default>`. On a conflict, resolve only within the plan's file list; a conflict outside it returns `failed`.
-2. **Renumber on collision.** If an `arch/` file this branch adds has a number already on `origin/<default>`, rename it to one past the highest across `arch/` and `arch/archive/` on `origin/<default>`, fix its `# ADR-<n>` header and every reference in the diff, commit, update the PR body's `Decisions recorded` line, and post `Amended: ADR renumbered <old> → <new>; another entry landed first` as a plan comment. Never touch an entry already on the default branch.
-3. If step 1 or 2 changed anything, re-run the issue's verification check and the suite. On a failure, post it (see Advance) and return `failed` with the diagnosis saying the re-check failed. On a pass, confirm `git status --porcelain --untracked-files=no` is empty — every edit committed — then push. After a renumber, also confirm `git show origin/<branch>:<new path>` begins with `# ADR-<new>`.
-4. `gh pr view <PR> --json mergeable,mergeStateStatus`. Retry for up to a minute while it reads `UNKNOWN`. Merge only on `MERGEABLE`: `gh pr merge <PR> --squash`. Do not pass `--delete-branch`; `/finish` deletes branches, after the worktree is gone.
-5. `gh pr view <PR> --json state`. Return `ok` **only** when it reads `MERGED`. A merge queue or auto-merge that left it `OPEN` returns `blocked` with the `mergeStateStatus`.
-6. If branch protection requires a human review, return `needs_user`. Never bypass protection, never `--admin`.
-
-## Shared resources
-
-Worktrees have different directory names, so each gets its own compose project — but they all publish the same host ports. Before any step that starts a service on a fixed host port, take an exclusive lock, and hold it from `up` through `down`:
-
-```bash
-LOCKS="$(git -C <worktree> rev-parse --path-format=absolute --git-common-dir)/execute-locks"
-mkdir -p "$LOCKS" && mkdir "$LOCKS/port-<port>" && echo "issue-<N> $(date -u +%FT%TZ)" > "$LOCKS/port-<port>/owner"
-```
-
-- `mkdir` failing because the directory exists means held: poll every 15 seconds for up to 10 minutes, then return `blocked` naming the holder. Any other failure fails the step.
-- Run compose from the worktree with `-p issue-<N>`. Release only after `docker compose -p issue-<N> down -v` succeeds and after killing any server the stage backgrounded. Never return with a lock held; if you must, list it in `locks_held`.
-- Before `up`, if `docker ps --filter publish=<port> -q` is non-empty and the lock is free, something outside this run holds the port: return `blocked` naming the container. Never stop a container this run did not start.
-- The orchestrator removes any lock whose `owner` names an issue whose stage has returned, after confirming that issue's compose project has no running containers.
-
-`uv sync` in several worktrees shares uv's cache safely; each worktree gets its own `.venv`.
-
-## Truly breaking
-
-The only reasons a stage returns `needs_user` or the orchestrator interrupts the user:
-
-1. **A supersede.** The plan would contradict an ADR the issue is constrained by.
-2. **An unresolvable fork.** The issue and its spec disagree, or admit two readings, whose results differ in schema, public interface, wire format or dependency, and neither `arch/` nor the issue settles it.
-3. **A dependency closed as not planned.**
-4. **An irreversible act beyond this branch.** Dropping or rewriting shared data, force-pushing a shared branch, deleting anything but this issue's merged branch, stopping a container or process this run did not start.
-5. **A merge that needs a human.** Branch protection requiring a review.
-6. **A duplicate ADR number on the default branch.**
-7. **The runaway guard.** Issues filed by workers this run exceed `max(5, 2 × the candidates at start)`.
-
-Everything else the stage decides, and records the decision in the plan comment, the PR body, or the result. "I would have liked to ask" is not a reason; "a wrong guess here produces a different schema" is.
-
-## New issues
-
-A stage files an issue when it finds necessary work outside its issue's scope: a bug noticed in passing, a spec gap, a missing prerequisite. Before filing, `gh issue list --state open --limit 1000 --search "<key terms>"` for a duplicate. Use the `/spec-to-issues` template — Goal, Files likely involved, Out of scope, Verification, `Spec:`, `Constrained by`, `Depends on` — the parent issue's labels, and `specs/<slug>.md §n` citations. Add `Found while working #<N> under /execute.` and list the number in `new_issues`.
-
-If the parent cannot finish without it, add `Depends on #<new>` to the parent's body and return `waiting_dependency`. The orchestrator re-fetches, schedules the new issue, and resumes the parent at the same stage once the new issue closes. Otherwise the parent carries on and the new issue is worked in its own turn.
-
-## Rules for every stage
-
-- Every command runs in the directory the prompt names, with `cd <dir> &&` or `git -C <dir>`.
-- No stage proceeds on an open dependency, on a `/code-review` handle, or past a failing check.
-- Every self-answered gate leaves a trace on the issue or the PR. State that lives only in an agent's context does not exist.
-- Never bypass branch protection, never `--admin`, never force-push, never rewrite an `arch/` entry already on the default branch.
-- Root causes only. Never loosen an assertion, skip a test or suppress an error to get to green.
-- Report faithfully. A `blocked` or `failed` result says so, with its diagnosis.
+The Gates, the fix and merge stage instructions, Shared resources, Truly breaking, New issues and Rules for every stage live in `~/.claude/skills/execute/stage-rules.md`. **Read it in full at the start of every run**; it binds the orchestrator as well as every stage. Its last line is the sentinel `END STAGE-RULES v1`.
 
 ## Hard rules for the orchestrator
 
 - **Never name a stage agent**, and never pass `isolation`. Named Agent calls become teammates running in the main checkout when agent teams are on.
 - **One stage per agent, at that stage's effort.** Never collapse the chain into one long agent; the effort table and the fresh context are the point.
-- **Merge and finish are serial.**
+- **Merges are serial, and finishes are serial;** a merge may overlap a finish.
 - **Merge only PRs this run's ship stage opened**, identified by `Opened under /execute.` in the body.
 - **Find a PR only by the filtered lookup in step 2.**
 - **Two strikes and the issue is `failed`,** with the diagnosis on the issue. No third attempt in the same run.

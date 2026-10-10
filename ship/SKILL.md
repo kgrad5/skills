@@ -40,6 +40,7 @@ The order below is deliberate. Do not reorder it.
    - This pass and step 4 are the only scrutiny this change will get. There is no second human. Do not treat them as a formality to clear.
 
 4. **Check plan conformance** — the thing `/code-review` cannot do, because it never sees the issue or the plan.
+   - Steps 3 and 4 read the same committed diff and may run concurrently; step 5 starts only after both have returned.
    - Retrieve the approved plan: this conversation, then `gh issue view <N> --json comments` for the last comment containing `<!-- unit-of-work:approved-plan -->`, then the harness plan file.
    - If no plan is retrievable, review the diff against **the issue alone**, and say so explicitly — in your report and in the PR body. Never claim conformance you did not check.
    - **The decision log is `arch/` at the repo root**, one file per decision. `arch/archive/` holds the entries later decisions retired; read it only to resolve a number, never to judge scope. The plan's file list names the exact paths it drafted. Read the issue's `Spec:` line for the spec this work descends from, and judge scope against that spec — not against a spec you guessed at.
@@ -49,10 +50,13 @@ The order below is deliberate. Do not reorder it.
      - The issue's verification check is satisfied by the change
      - Nothing outside the issue's scope changed, except an `arch/` file recording a decision this diff makes
      - The edge cases the issue names have tests
+     - **The README still tells the truth.** If the diff changes anything `README.md` documents (commands, env vars, config, ports, endpoints, request shapes, container or compose setup), the diff updates the README to match. A README edit is in scope even where the plan omitted it, for the same reason a missing ADR is: the plan was incomplete. Say so in the report and the PR body
      - **The diff adds the `arch/` file the plan named, and no decision in the diff is missing from `arch/`.** Check the artifact first: the plan's Architecture decisions section either names entries — each must appear in the diff — or holds the literal `None`, which the diff must bear out. The bar for a decision the plan never named is the same one `/issue-to-task` used: it makes a sentence in the issue's spec wrong or incomplete, or it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format
    - Use a subagent for this so it is not biased by the reasoning that produced the change.
 
 5. **Fix the gaps that matter** — those affecting correctness or a stated requirement. Ignore style preferences. A reviewer told to find gaps will always find some, and chasing every finding produces over-engineering. Commit the fixes separately.
+
+   **A stale README is a gap that matters**: a reader who follows it gets a command that fails or a setting that no longer exists. Fix it in this diff, commit it with the other fixes, and list it in the PR body as a departure from the plan.
 
    **A missing ADR is always a gap that matters, never a style preference.** Add `arch/<NNNN>-<kebab-slug>.md` in the format `/idea-to-spec` defines — `# ADR-<n>`, then Status, Context, Decision, Consequences, Alternatives rejected — numbered one past the highest file across `arch/` and `arch/archive/` together — a retired entry keeps its number, so a count that skips the archive reuses one. **Re-check the number against the default branch**: a plan drafted days ago may have claimed a number another branch has since landed. Renumber and rename rather than collide, then commit it with the other fixes. A renumber changes three things, not one: the filename, the `# ADR-<n>` heading on line 1, and every reference to the old number in the diff. Before pushing, confirm `git status --porcelain --untracked-files=no` is empty and that `git show HEAD:arch/<new-file> | head -1` begins with `# ADR-<new n>`. A rename committed without its heading lands two entries under one number, and nothing downstream catches it. But an entry written here was never in an approved plan, so it cannot claim the approval that makes an entry `Accepted`: show its Context, Decision, Consequences and Alternatives to the user and get an explicit yes first — the same yes step 7 requires for the pull request itself.
 
@@ -68,6 +72,7 @@ The order below is deliberate. Do not reorder it.
    - The verification evidence from step 6 — command and full output, in a fenced block
    - Any departure from the approved plan, called out rather than left in a commit message
    - A note if the plan-conformance check ran against the issue alone
+   - `README updated: <what changed>`, when this diff edits the README
    - `Decisions recorded: ADR-<n>`, when this diff records any. The reader is about to merge in the GitHub UI; this is where they see the record keeping up with the code. Omit the line entirely when there are none — a PR body that announces its own emptiness teaches the reader to skip the line
 
    **If `--draft` was given, stop here.** A draft PR is a deliberate request to pause before landing.

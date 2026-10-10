@@ -44,6 +44,8 @@ Resolve the issue number in this order. Stop at the first that yields one.
 5. **Enter plan mode** if not already in it, using the `EnterPlanMode` tool (load it with `ToolSearch` if it is not already available). Do not assume the session is in plan mode.
 6. **Explore, then plan.** Read the files the issue names and the patterns they follow. Produce a plan covering: files to change, the approach, the test plan, side effects (migrations, env vars, new dependencies), and risks. Stay inside the issue's scope.
 
+   **Keep the README true.** If the change alters anything the repo's `README.md` tells a reader — how to install, run, develop, test or deploy; a command, env var, config file, port, endpoint or request shape; the container or compose setup — put `README.md` in the file list and state the exact README edit in the approach. The README is updated in the same diff as the change, never in a follow-up. If the repo has no README, say so and do not create one unless the issue asks.
+
    **Draft the ADR here, inside the plan — not afterwards.** A decision earns an entry when any of these is true: it makes a sentence in the spec wrong or incomplete (name the sentence); it chose between options whose loser would have produced a different schema, file layout, dependency, or wire format; or the issue carries an `Undocumented decision:` line, meaning the spec states a decision `arch/` never recorded and this issue is the first to implement it. In a repo with no spec, the first clause cannot fire and the second is the whole test. Neither, no entry — and when nothing qualifies, the section still gets written, holding the literal line `None — no architecture-significant decision in this plan.` Size is not the test; reversibility is.
 
    Cite spec sections in the entry as `specs/<slug>.md §4.4`, never a bare `§4.4` — `/idea-to-spec` states why. The wording approved here is the wording that lands in `arch/`, and `arch/` is never rewritten to fix a citation later.
@@ -54,7 +56,7 @@ Resolve the issue number in this order. Stop at the first that yields one.
 7. **Write the plan to the harness plan file** at the path given in the plan-mode message. This is the one write permitted in plan mode, and it makes the path available for the rest of the session.
 8. **Gate the plan on the six criteria** before presenting it. State each verdict explicitly:
    - Every consequential decision is explicit — no "handle appropriately"
-   - The listed files match what the issue would lead you to expect — plus an `arch/` file, when and only when this plan drafts one
+   - The listed files match what the issue would lead you to expect — plus an `arch/` file, when and only when this plan drafts one, and `README.md`, when and only when the change alters something it documents
    - The plan ends with the issue's verification check
    - Nothing outside the issue's scope has crept in — recording a decision *this plan makes*, or one the spec states that `arch/` never recorded and this issue implements, is inside scope; recording any other is not
    - The test plan covers the edge cases the issue names

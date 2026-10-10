@@ -57,7 +57,7 @@ Claude Code already does it:
 | Explore | Plan mode's own exploration, the `Explore` subagent |
 | Write the plan | Plan mode; `Ctrl+G` to edit it in your editor |
 | Choose the leash | `ExitPlanMode`'s permission-mode prompt |
-| Correctness review | `/code-review` — `/ship` delegates to it |
+| Correctness review | `/code-review` — `/ship` delegates to it (under `/execute`, an unnamed review agent instead) |
 | Interrupt / rewind / compact | `Esc`, `Esc Esc` or `/rewind`, `/compact <instructions>` |
 | Close out | `/clear` |
 
@@ -94,6 +94,8 @@ The six-criteria checklist appears in three places — `/issue-to-task` and `/sh
 
 What must stay identical is the bar for what earns an entry. It now appears in three places — `/idea-to-spec`, `/issue-to-task`, `/ship` — plus `unit-of-work-process.md`. Change one, change all four.
 
-**`/execute` restates every other skill's gates.** Its Gates section answers each point where `/issue-to-task`, `/implement`, `/verify`, `/ship` or `/finish` would ask you, and its stage prompts carry that section verbatim. Add, move or reword a gate in one of those skills and the matching line in `/execute` goes stale; change both together.
+**`/execute` restates every other skill's gates.** Its Gates, in `execute/stage-rules.md`, answer each point where `/issue-to-task`, `/implement`, `/verify`, `/ship` or `/finish` would ask you; every stage reads that file before its first command. Add, move or reword a gate in one of those skills and the matching line in `/execute` goes stale; change both together.
+
+**Every target repo's `README.md` stays true.** `/issue-to-task` lists the README in the plan when a change alters anything it documents, `/ship` treats a stale README as a gap that matters, and `/verify` under `/execute` runs the README commands a diff changes.
 
 **How a spec section is cited** lives in exactly one place, `/idea-to-spec` under "Citing a spec section": `specs/<slug>.md §4.4`, never a bare `§4.4`, anywhere outside the spec itself. `/spec-to-issues` and `/issue-to-task` point at it rather than restating it, because a rule copied into four files is a rule that drifts in three of them. It is also the one convention here worth enforcing with a test in the target repo — it was written down once and broken in the next file authored under it, which is what a rule that depends on memory does.
