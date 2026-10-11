@@ -1,7 +1,7 @@
 ---
 name: brainstorm
 description: Takes an idea to filed GitHub issues in one sitting — asks what the idea is, narrows it with the user to the smallest version worth building, decomposes it into single-focus steps with a dependency DAG, writes the spec and ADRs when the idea is big enough to need them, and after one approval lands them and files one issue per step with the Depends on lines /execute schedules from. Small changes take a fast path with no spec and at most one round of questions. This skill should be used when the user says "brainstorm", "I have an idea", "shape this idea", "idea to issues", or "break this idea into issues".
-argument-hint: [idea] [--label <name>]
+argument-hint: [idea] [--label <name>] [--max]
 ---
 
 # brainstorm
@@ -24,6 +24,7 @@ Check and report; never assume.
 Arguments given: $ARGUMENTS
 
 - `--label <name>` sets the label on every issue. Otherwise use the slug of the spec the issues name, or a kebab-case name for the idea when they name none; show it at the approval.
+- `--max`, or the user saying at any point before filing that the work is critical, turns on **max mode**: every issue is labeled `max-effort`, so `/execute` runs its judgment stages at `max` and never takes the fast lane, and a review at `max` precedes the approval — switched on at the approval itself, it returns to step 7 for that review. Without it, everything runs at `/execute`'s defaults.
 - Everything else is the idea. With none, ask in plain text what the idea is, and wait for the answer.
 
 ## Procedure
@@ -31,7 +32,7 @@ Arguments given: $ARGUMENTS
 1. **Read before asking.** Skim what the idea touches: the related code, `specs/`, the live entries in `arch/`, and `gh issue list --state open --limit 1000`. An overlapping spec is extended, never rivalled, and never overwritten without an answer; an extend never renumbers an existing `§`, which `arch/` cites and never rewrites, so a new section goes after the last one at its level. Overlapping open work becomes a dependency, not a duplicate. Use an `Explore` subagent if the repo is large.
 
 2. **Size it, and say which in one line.**
-   - **Small** — every step is clear from the code, and it fits in at most three issues. Ask at most one round of questions, and only ones whose answers change an issue or give the user's reason for a decision that meets the ADR bar. Write no spec; name an existing spec on the `Spec:` line when the change falls inside one. Put each such decision, its reason and any spec sentence it makes wrong into the issue that makes it, so that issue's plan drafts the entry (issue-to-task step 6).
+   - **Small** — every step is clear from the code, and it fits in at most three issues. Ask at most one round of questions, and only ones whose answers change an issue or give the user's reason for a decision that meets the ADR bar. Write no spec; name an existing spec on the `Spec:` line when the change falls inside one. Put each such decision, its reason and any spec sentence it makes wrong into the issue that makes it, so its own run records the entry. Label every small-path issue `small` too, except in max mode, and `/execute` takes it through its fast lane: one agent from plan to pull request.
    - **Full** — anything else. If a small idea later fails the small test — a step the code does not make clear, a fourth issue — switch to full and say so.
 
 3. **Narrow it.** Propose the smallest version worth having, and what moves to Out of scope, and confirm it with `AskUserQuestion` — on the small path in the one round, and not at all when the idea is already as small as it gets. On the full path every later question is about that core: interview as idea-to-spec step 4 says — up to four questions a round, your recommendation first — skipping anything obvious or already answered, but never the out-of-scope list or the user's reason for an architecture decision. Stop when another round would change neither the issues nor the implementation the spec describes, and say so.
@@ -47,9 +48,9 @@ Arguments given: $ARGUMENTS
 
 6. **Write the spec** (full path only). In a worktree outside the main checkout — `git fetch origin <default>`, then `git worktree add --detach <parent of the main checkout>/<repo>.worktrees/brainstorm-<slug> origin/<default>` — write `specs/<slug>.md` and one `arch/` file per decision that meets the bar. Number each through the reservation loop in `~/.claude/skills/execute/stage-rules.md`, as owner `brainstorm-<slug>`, starting past any appendix decision table (idea-to-spec step 2): the loop counts `arch/archive/` and creates the lock directory, so no `/execute` run, live or later, takes the same number. The main checkout is never touched, so a running `/execute` keeps its clean tree. Check the spec against idea-to-spec's hard rules and fix any miss. Then name every ADR gap — a decision an existing spec states that `arch/` does not record, in an area these steps touch — and record it now if the user has given its reason; otherwise put an `Undocumented decision:` line on the earliest issue in DAG order that it touches, and only that one, since parallel plans would each draft an entry.
 
-7. **Draft every issue body** in spec-to-issues' template, leaving the `Depends on` numbers until step 10.
+7. **Draft every issue body** in spec-to-issues' template, leaving the `Depends on` numbers until step 10. In max mode, then launch one unnamed subagent at effort `max` to review the spec, the ADRs, the issue drafts and the DAG against the interview — gaps, contradictions, checks that cannot fail, false or missing edges — and fix what it confirms before the approval.
 
-8. **One approval.** In one message: the idea in a sentence; the path taken; the spec's absolute path in the draft worktree with a line per section (on an extend, its diff); each ADR in full, since that wording lands in `arch/` as written; each ADR gap and how it is settled; that a yes lands them on `<default>` before any issue is filed; the label; the numbered steps with each one's title, check and dependencies; and the DAG. Ask with `AskUserQuestion`: approve, change something, or cancel. A change returns to the step it affects. Cancel removes the draft worktree (`git worktree remove --force`: it holds the uncommitted drafts) and its reservations. Nothing reaches the default branch or GitHub before the yes, and the yes is the acceptance event for every ADR in the set.
+8. **One approval.** In one message: the idea in a sentence; the path taken; the spec's absolute path in the draft worktree with a line per section (on an extend, its diff); each ADR in full, since that wording lands in `arch/` as written; each ADR gap and how it is settled; that a yes lands them on `<default>` before any issue is filed; the label and the effort mode, default or max; the numbered steps with each one's title, check and dependencies; and the DAG. Ask with `AskUserQuestion`: approve, change something, or cancel. A change returns to the step it affects. Cancel removes the draft worktree (`git worktree remove --force`: it holds the uncommitted drafts) and its reservations. Nothing reaches the default branch or GitHub before the yes, and the yes is the acceptance event for every ADR in the set.
 
 9. **Land the spec** (full path only). `/execute` builds every worktree from `origin/<default>`, so each issue's `Spec:` line must resolve there before the issue exists. In the draft worktree, confirm no two `arch/` files share a number and every `# ADR-<n>` heading matches its filename, and run the repo's tests that need no running service. Then commit — `Add <feature> spec and ADR-<n>, ADR-<m>` (`Extend` for an existing spec; no ADR clause when there are none) — and `git push origin HEAD:<default>`.
    - **Rejected because the branch moved:** `git fetch origin <default>`, rebase onto it, renumber any ADR that now collides through the reservation loop — filename, heading and every reference, the issue drafts and the commit message included — re-run the checks above, and push again. If the rebase stops on a conflict, resolve it and push only once the user approves the resolved hunks; otherwise `git rebase --abort` and stop, keeping the worktree.
@@ -57,7 +58,7 @@ Arguments given: $ARGUMENTS
 
    Once the spec is on `origin/<default>`, remove the draft worktree, its reservations and any `brainstorm-<slug>` branch.
 
-10. **File the issues** wave by wave, so every dependency's number exists before its dependant is created. Create the label only when `gh label list --search <label> --json name -q '.[].name' | grep -qxF <label>` finds none — `gh label create --force` would recolour an existing one. Then one `gh issue create --title "<title>" --label <label> --body-file -` per step, with its dependencies on a single `Depends on #<a>, #<b>` line, echoing each URL as it returns. On any failure, stop, report what was created, and print each unfiled step's full body and dependencies so it can be filed by hand; never restart the loop. Then read each filed body back (`gh issue view <n> --json body`) and confirm its `Depends on` line names exactly its parents in the DAG.
+10. **File the issues** wave by wave, so every dependency's number exists before its dependant is created. Create each label it uses — the feature label, and `max-effort` in max mode or else `small` on the small path — only when `gh label list --search <label> --json name -q '.[].name' | grep -qxF <label>` finds none: `gh label create --force` would recolour an existing one. Then one `gh issue create --title "<title>" --label <label> --body-file -` per step, adding `--label max-effort` in max mode, or else `--label small` on the small path, with its dependencies on a single `Depends on #<a>, #<b>` line, echoing each URL as it returns. On any failure, stop, report what was created, and print each unfiled step's full body and dependencies so it can be filed by hand; never restart the loop. Then read each filed body back (`gh issue view <n> --json body`) and confirm its `Depends on` line names exactly its parents in the DAG.
 
 ## Hard rules
 
@@ -69,7 +70,7 @@ Arguments given: $ARGUMENTS
 
 ## Output
 
-- The path taken, and why.
+- The path taken, and why, and the effort mode.
 - The spec's path and the commit that landed it; each `arch/` file with its one-line decision.
 - A table: issue number, title, URL, verification check, depends on, constrained by.
 - The DAG again, with issue numbers in place of steps, and its waves.
